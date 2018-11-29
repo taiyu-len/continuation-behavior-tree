@@ -1,13 +1,17 @@
 #include "cbt.hpp"
 #include <doctest/doctest.h>
+
+// empty function passed as final callback to break on in debugger.
+static void bp_func(Status) {};
+
 struct MockBehavior : public Behavior
 {
   Status _status = Success;
   int _count = 0;
-  void run(Continuation c) override
+  void run() override
   {
     ++_count;
-    c(_status);
+    call_cc(_status);
   }
 };
 
@@ -45,14 +49,13 @@ struct MockDecorator : public Decorator
   int& _run_count;
   int& _cb_count;
 
-  void run(Continuation c) override
+  void run() override
   {
     _run_count++;
-    child()(
-      [this, c=std::move(c)](Status s) {
-        _cb_count++;
-        c(s);
-      });
+    child()([this](Status s) {
+      _cb_count++;
+      call_cc(s);
+    });
   }
 };
 
@@ -87,12 +90,12 @@ TEST_CASE("Repeater")
   auto bp = _b.get();
   auto rp = std::make_unique<Repeator>(std::move(_b), 5);
   SUBCASE("Repeat 5 times") {
-    (*rp)();
+    (*rp)(bp_func);
     REQUIRE(bp->_count == 5);
   }
   SUBCASE("Nested Repeat 5*5 times") {
     auto rp2 = std::make_unique<Repeator>(std::move(rp), 5);
-    (*rp2)();
+    (*rp2)(bp_func);
     REQUIRE(bp->_count == 25);
   }
   SUBCASE("Nested repeat Fail first") {
@@ -104,3 +107,32 @@ TEST_CASE("Repeater")
 
 }
 
+struct MockBehaviorContinue : public Behavior
+{
+  MockBehaviorContinue(std::function<void()>& n):next(n) {}
+  std::function<void()> &next;
+  int count = 0;
+
+  void run() override
+  {
+    count++;
+    next = [this]() { call_cc(Success); };
+  }
+};
+
+TEST_CASE("Behavior with Continues")
+{
+  std::function<void()> next;
+  auto _b = std::make_unique<MockBehaviorContinue>(next);
+  auto bp = _b.get();
+  auto rp = std::make_unique<Repeator>(std::move(_b), 5);
+  SUBCASE("Repeater") {
+    (*rp)([&](Status){ next = nullptr; });
+    REQUIRE(bp->count == 1); next();
+    REQUIRE(bp->count == 2); next();
+    REQUIRE(bp->count == 3); next();
+    REQUIRE(bp->count == 4); next();
+    REQUIRE(bp->count == 5); next();
+    REQUIRE(next == nullptr);
+  }
+}

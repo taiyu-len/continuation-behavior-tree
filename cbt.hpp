@@ -23,31 +23,38 @@ enum Status
 class Behavior
 {
 public:
-  // The Continuation is called with a given status
   using Continuation = std::function<void(Status)>;
-  void operator()() { (*this)([](Status){});  }
+
+  // Run with existing continuation
+  void operator()()
+  {
+    run();
+  }
+
+  // Set continuation and then run
   void operator()(Continuation c)
   {
-    run(std::move(c));
+    _continue = std::move(c);
+    run();
   }
 
   virtual ~Behavior() = default;
 protected:
-  virtual
-  void run(Continuation c) = 0;
-};
+  // Run is responsible for Initializing the state of the behavior,
+  // and calling the set continuation at some point later.
+  // either directly (leaf node), or through a continuation passed to the child
+  // (decorator, composite)
+  virtual void run() = 0;
 
-class Decorator : public Behavior
-{
-protected:
-  std::unique_ptr<Behavior> _child;
+  // Calls the continuation that has been set.
+  void call_cc(Status s)
+  {
+    _continue(s);
+  }
 
-public:
-  Decorator(std::unique_ptr<Behavior> child): _child(std::move(child)) {}
-  Decorator(Decorator &&) = default;
-  Decorator& operator=(Decorator &&) = default;
-
-  Behavior& child() { return *_child; }
+  // The continuation set on operator()(Continuation)
+  // defaults to a no-op
+  Continuation _continue = [](Status){};
 };
 
 /*
@@ -71,38 +78,47 @@ public:
  * can use them safely until the continuation stack finishes.
  */
 
-/* TODO: use alternative to std::function that allows move only types
-struct Root : public Decorator
+struct Root : public Behavior
 {
-  using Decorator::Decorator;
-  Root(Root&&) = default;
-  Root& operator=(Root&&) = default;
+  Root(std::shared_ptr<Behavior> child): _child(child) {}
 
 protected:
-  void run(Continuation c) override
+  std::shared_ptr<Behavior> _child;
+  void run() override
   {
-    child()(Continuation([self=std::move(*this), c=std::move(c)](Status s) {
-      c(s);
-    }));
+    (*_child)([self=std::move(*this)] (Status s) mutable {
+      self.call_cc(s);
+    });
   }
 };
-*/
+
+class Decorator : public Behavior
+{
+protected:
+  std::unique_ptr<Behavior> _child;
+
+public:
+  Decorator(std::unique_ptr<Behavior> child): _child(std::move(child)) {}
+  Decorator(Decorator &&) = default;
+  Decorator& operator=(Decorator &&) = default;
+
+  Behavior& child() { return *_child; }
+};
 
 class Inverter : public Decorator
 {
 public:
   using Decorator::Decorator;
 protected:
-  void run(Continuation c) override
+  void run() override
   {
-    child()(
-      [c=std::move(c)] (Status s) {
-        switch (s) {
-        case Success: return c(Failure);
-        case Failure: return c(Success);
-        default: return c(s);
-        }
-      });
+    child()([this] (Status s) {
+      switch (s) {
+      case Success: return call_cc(Failure);
+      case Failure: return call_cc(Success);
+      default: return call_cc(s);
+      }
+    });
   }
 };
 
@@ -118,18 +134,13 @@ public:
 protected:
   size_t _limit, _count;
 
-  void run(Continuation c) override
+  void run() override
   {
     _count = 0;
-    step(std::move(c));
-  }
-  void step(Continuation c)
-  {
-    child()(
-      [this, c=std::move(c)](Status s) {
-        if (++_count == _limit || s == Failure) c(s);
-        else step(std::move(c));
-      });
+    child()([this](Status s) {
+      if (++_count == _limit || s == Failure) call_cc(s);
+      else child()();
+    });
   }
 };
 
