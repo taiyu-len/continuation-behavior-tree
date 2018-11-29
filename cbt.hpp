@@ -10,6 +10,7 @@
 #include <vector>
 #include <memory>
 #include <functional>
+#include <doctest/doctest.h>
 
 // The status of a function
 // TODO replace with std::error_code or something
@@ -19,6 +20,16 @@ enum Status
   Failure = +0,
   Success = +1
 };
+
+doctest::String toString(Status s)
+{
+  switch (s) {
+  case Invalid: return "Invalid";
+  case Failure: return "Failure";
+  case Success: return "Success";
+  default: return "Unknown";
+  }
+}
 
 class Behavior
 {
@@ -80,7 +91,7 @@ protected:
 
 struct Root : public Behavior
 {
-  Root(std::shared_ptr<Behavior> child): _child(child) {}
+  Root(std::shared_ptr<Behavior> child): _child(std::move(child)) {}
 
 protected:
   std::shared_ptr<Behavior> _child;
@@ -99,16 +110,15 @@ protected:
 
 public:
   Decorator(std::unique_ptr<Behavior> child): _child(std::move(child)) {}
-  Decorator(Decorator &&) = default;
-  Decorator& operator=(Decorator &&) = default;
 
   Behavior& child() { return *_child; }
 };
 
-class Inverter : public Decorator
+class InvertDecorator : public Decorator
 {
 public:
   using Decorator::Decorator;
+
 protected:
   void run() override
   {
@@ -122,10 +132,13 @@ protected:
   }
 };
 
-class Repeator : public Decorator
+template<typename T>
+InvertDecorator Inverter(T x) { return {std::make_unique<T>(std::move(x))}; }
+
+class RepeatDecorator : public Decorator
 {
 public:
-  Repeator(std::unique_ptr<Behavior> b, size_t limit)
+  RepeatDecorator(std::unique_ptr<Behavior> b, size_t limit)
   : Decorator(std::move(b))
   , _limit(limit)
   , _count(0)
@@ -143,5 +156,13 @@ protected:
     });
   }
 };
+
+template<typename T>
+RepeatDecorator Repeater(T x, size_t limit)
+{
+  return {std::make_unique<T>(std::move(x)), limit};
+}
+
+
 
 #endif // CBT_HPP

@@ -6,133 +6,125 @@ static void bp_func(Status) {};
 
 struct MockBehavior : public Behavior
 {
+  std::function<Status()> func = []{ return Success; };
+  MockBehavior() = default;
+  MockBehavior(std::function<Status()> f):func(f) {}
+
   Status _status = Success;
   int _count = 0;
   void run() override
   {
-    ++_count;
-    call_cc(_status);
+    call_cc(func());
   }
 };
 
 TEST_CASE("Behavior")
 {
-  MockBehavior m;
   SUBCASE("calls once") {
-    REQUIRE(m._count == 0);
+    auto count = 0;
+    auto m = MockBehavior([&]{ count++; return Success; });
+
+    REQUIRE(count == 0);
     m();
-    REQUIRE(m._count == 1);
+    REQUIRE(count == 1);
   }
-  SUBCASE("continuation with status") {
-    Status s = Invalid;
+  SUBCASE("pass status to final continuation") {
+    auto s = Invalid;
     auto cb = [&](Status _s) { s = _s; };
     SUBCASE("Success") {
+      auto m = MockBehavior([&]{ return Success; });
+      REQUIRE(s == Invalid);
       m(cb);
       REQUIRE(s == Success);
     }
     SUBCASE("Failure") {
-      m._status = Failure;
+      auto m = MockBehavior([&]{ return Failure; });
+      REQUIRE(s == Invalid);
       m(cb);
       REQUIRE(s == Failure);
     }
   }
 }
 
-struct MockDecorator : public Decorator
+TEST_CASE("Decorator::Inverter")
 {
-  MockDecorator(std::unique_ptr<Behavior> b, int& r, int& c)
-  : Decorator(std::move(b))
-  , _run_count(r)
-  , _cb_count(c)
-  {}
-
-  int& _run_count;
-  int& _cb_count;
-
-  void run() override
-  {
-    _run_count++;
-    child()([this](Status s) {
-      _cb_count++;
-      call_cc(s);
-    });
-  }
-};
-
-TEST_CASE("Decorator")
-{
-  int run_count = 0;
-  int cb_count = 0;
-  auto _b = std::make_unique<MockBehavior>();
-  auto md = std::make_unique<MockDecorator>(std::move(_b), run_count, cb_count);
+  auto result = Invalid;
+  auto cb = [&](Status s) { result = s; };
+  auto md = MockBehavior{};
   SUBCASE("Single") {
-    (*md)();
-    REQUIRE(run_count == 1);
-    REQUIRE(cb_count  == 1);
+    auto i = Inverter(std::move(md));
+    REQUIRE(result == Invalid);
+    i(cb);
+    REQUIRE(result == Failure);
   }
   SUBCASE("Double") {
-    auto md2 = MockDecorator(std::move(md), run_count, cb_count);
-    md2();
-    REQUIRE(run_count == 2);
-    REQUIRE(cb_count  == 2);
-  }
-  SUBCASE("Double with continuation") {
-    int i = 0;
-    auto md2 = MockDecorator(std::move(md), run_count, cb_count);
-    md2([&](Status){ i = 1; });
-    REQUIRE(i == 1);
+    auto i = Inverter(Inverter(std::move(md)));
+    REQUIRE(result == Invalid);
+    i(cb);
+    REQUIRE(result == Success);
   }
 }
 
 TEST_CASE("Repeater")
 {
-  auto _b = std::make_unique<MockBehavior>();
-  auto bp = _b.get();
-  auto rp = std::make_unique<Repeator>(std::move(_b), 5);
+  auto count = 0;
+  auto result = Invalid;
+  auto cb = [&](Status s) { result = s; };
+  auto md = MockBehavior{[&]{ ++count; return Success; }};
   SUBCASE("Repeat 5 times") {
-    (*rp)(bp_func);
-    REQUIRE(bp->_count == 5);
+    auto r = Repeater(std::move(md), 5);
+    r(cb);
+    REQUIRE(count == 5);
+    REQUIRE(result == Success);
   }
   SUBCASE("Nested Repeat 5*5 times") {
-    auto rp2 = std::make_unique<Repeator>(std::move(rp), 5);
-    (*rp2)(bp_func);
-    REQUIRE(bp->_count == 25);
+    auto r = Repeater(Repeater(std::move(md), 5), 5);
+    r(cb);
+    REQUIRE(count == 25);
+    REQUIRE(result == Success);
   }
-  SUBCASE("Nested repeat Fail first") {
-    bp->_status = Failure;
-    auto rp2 = std::make_unique<Repeator>(std::move(rp), 5);
-    (*rp2)();
-    REQUIRE(bp->_count == 1);
+  SUBCASE("Fail at third iteration") {
+    md = MockBehavior{[&]{ return ++count == 3 ? Failure : Success; }};
+    auto r = Repeater(std::move(md), 5);
+    r(cb);
+    REQUIRE(count == 3);
+    REQUIRE(result == Failure);
   }
-
 }
 
 struct MockBehaviorContinue : public Behavior
 {
-  MockBehaviorContinue(std::function<void()>& n):next(n) {}
-  std::function<void()> &next;
-  int count = 0;
+  MockBehaviorContinue(Continuation& c, int& i):_next{c}, _count{i} {}
+  Continuation &_next;
+  int &_count;
 
   void run() override
   {
-    count++;
-    next = [this]() { call_cc(Success); };
+    _count++;
+    _next = [this](Status s) { call_cc(s); };
   }
 };
 
 TEST_CASE("Behavior with Continues")
 {
-  std::function<void()> next;
-  auto _b = std::make_unique<MockBehaviorContinue>(next);
-  auto bp = _b.get();
-  auto rp = std::make_unique<Repeator>(std::move(_b), 5);
-  SUBCASE("Repeater") {
-    (*rp)([&](Status){ next = nullptr; });
-    REQUIRE(bp->count == 1); next();
-    REQUIRE(bp->count == 2); next();
-    REQUIRE(bp->count == 3); next();
-    REQUIRE(bp->count == 4); next();
-    REQUIRE(bp->count == 5); next();
+  Behavior::Continuation next;
+  int count = 0;
+  auto r = Repeater(MockBehaviorContinue{next, count}, 5);
+  SUBCASE("Manual continue till end") {
+    r([&](Status){ next = nullptr; });
+    REQUIRE(count == 1); next(Success);
+    REQUIRE(count == 2); next(Success);
+    REQUIRE(count == 3); next(Success);
+    REQUIRE(count == 4); next(Success);
+    REQUIRE(count == 5); next(Success);
+    REQUIRE(next == nullptr);
+  }
+  SUBCASE("Fail early") {
+    r([&](Status){ next = nullptr; });
+    REQUIRE(next != nullptr);
+    REQUIRE(count == 1); next(Success);
+    REQUIRE(count == 2); next(Success);
+    REQUIRE(count == 3); next(Failure);
     REQUIRE(next == nullptr);
   }
 }
