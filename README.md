@@ -31,7 +31,7 @@ TODO:
 2. define behavior concept
 3. convert to templates for compile time composition.
 4. implement adaptor to have runtime composition.
-5. try to ensure tailcalls.
+5. try to ensure tailcalls, restructure to avoid this in the first place.
 6. get it working with asio features.
 7. implement nodes taking executors
 
