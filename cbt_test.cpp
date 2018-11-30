@@ -1,7 +1,6 @@
 #include "cbt.hpp"
 #include <doctest/doctest.h>
 
-// empty function passed as final callback to break on in debugger.
 struct MockBehavior : public Behavior
 {
   std::function<Status()> func = []{ return Success; };
