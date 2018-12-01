@@ -28,5 +28,37 @@ TEST_CASE("spawn")
 		REQUIRE(count == 2);
 		REQUIRE(result == Success);
 	}
+	SUBCASE("respawning")
+	{
+		struct respawn {
+			int    &count;
+			Status &result;
+			void operator ()(behavior_t b, Status s) {
+				if (++count == 5 || s == Failure)
+					result = s;
+				else return spawn(std::move(b), *this);
+			}
+		};
+		continuation c;
+		spawn(
+			[&](continuation cc){ c = std::move(cc); },
+			respawn{count, result});
+		c(Success);
+		REQUIRE(c != nullptr);
+		REQUIRE(count == 1);
+		REQUIRE(result == Invalid);
+		SUBCASE("Fail early") {
+			c(Failure);
+			REQUIRE(c == nullptr);
+			REQUIRE(count == 2);
+			REQUIRE(result == Failure);
+		}
+		SUBCASE("Finish loop") {
+			while (c) c(Success);
+			REQUIRE(c == nullptr);
+			REQUIRE(count == 5);
+			REQUIRE(result == Success);
+		}
+	}
 }
 } // cbt

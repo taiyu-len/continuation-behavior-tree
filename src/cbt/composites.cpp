@@ -1,4 +1,5 @@
 #include "cbt/composites.hpp"
+#include <cassert>
 #include <doctest/doctest.h>
 namespace cbt
 {
@@ -10,10 +11,12 @@ struct sequence_t
 	continuation_type c = {};
 	void operator()(continuation _resume)
 	{
+		assert(_resume != nullptr);
 		index = 0;
 		resume = std::move(_resume);
 		if (children.size() == 0) return resume(Success);
 		c = [this](Status s) {
+			assert(index < children.size());
 			if (++index == children.size() || s == Failure)
 			{
 				return resume(s);

@@ -1,11 +1,14 @@
 #include "cbt/behavior.hpp"
 #include <utility>
 #include <doctest/doctest.h>
+#include <cassert>
 namespace cbt
 {
 
 void behavior_t::operator()(continuation c) const
 {
+	assert(_object != nullptr);
+	assert(c       != nullptr);
 	_object->start(std::move(c));
 }
 

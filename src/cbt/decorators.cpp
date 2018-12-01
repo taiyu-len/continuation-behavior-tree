@@ -1,4 +1,5 @@
 #include "cbt/decorators.hpp"
+#include <cassert>
 #include <doctest/doctest.h>
 namespace cbt
 {
@@ -9,6 +10,7 @@ struct inverter_t
 	continuation_type c{};
 	void operator()(continuation _resume)
 	{
+		assert(_resume != nullptr);
 		resume = std::move(_resume);
 		return child(c = [this](Status s)
 		{
@@ -52,11 +54,13 @@ struct repeater_t
 	continuation_type c{};
 	void operator()(continuation _resume)
 	{
+		assert(_resume != nullptr);
 		count = 0;
 		resume = std::move(_resume);
 		if (limit == 0) return resume(Success);
 		c = [this](Status s)
 		{
+			assert(count < limit);
 			if (++count == limit || s == Failure) return resume(s);
 			else return child(c);
 		};
