@@ -1,6 +1,8 @@
 #include "cbt/decorators.hpp"
 #include <cassert>
 #include <doctest/doctest.h>
+#include <cmath>
+
 namespace cbt
 {
 struct inverter_t
@@ -8,7 +10,7 @@ struct inverter_t
 	behavior_t child;
 	continuation resume{};
 	continuation_type c{};
-	void operator()(continuation&& _resume)
+	void operator()(continuation&& _resume) noexcept
 	{
 		assert(_resume != nullptr);
 		resume = std::move(_resume);
@@ -53,7 +55,7 @@ struct repeater_t
 	size_t count = 0;
 	continuation resume{};
 	continuation_type c{};
-	void operator()(continuation&& _resume)
+	void operator()(continuation&& _resume) noexcept
 	{
 		assert(_resume != nullptr);
 		count = 0;
@@ -74,11 +76,29 @@ behavior_t repeater(behavior_t&& x, size_t limit)
 	return repeater_t{ std::move(x), limit };
 }
 
+intptr_t stack_pointer()
+{
+	char p;
+#if defined(__GNUC__)
+	// gcc has, and requires std::launder for this to work
+	return reinterpret_cast<intptr_t>(std::launder(&p));
+#else // defined(__clang__)
+	// clang does not have std::launder, but works without it
+	return reinterpret_cast<intptr_t>(&p);
+#endif
+}
+
 TEST_CASE("repeater")
 {
+	auto bottom = stack_pointer();
+	auto top    = bottom;
+
 	auto count = 0;
 	auto result = Invalid;
-	auto cb = continuation_type([&](Status s) { result = s; });
+	auto cb = continuation_type([&](Status s)
+	{
+		result = s; top = stack_pointer();
+	});
 	auto leaf = behavior_t([&]{ ++count; return Success; });
 	SUBCASE("Repeat 5 times")
 	{
@@ -86,6 +106,15 @@ TEST_CASE("repeater")
 		bt.run(cb);
 		REQUIRE(count == 5);
 		REQUIRE(result == Success);
+		MESSAGE("stack usage = " << std::abs(bottom - top));
+		// using continuation by rvalue reference
+		// g++     -Og -ggdb: 3792
+		// g++     -O3      : 745
+		// g++     -Os      : 753
+		// clang++ -O3      : 769
+		// clang++ -Os      : 745
+		// using continuation by value
+		// g++     -Os      : 1041
 	}
 	SUBCASE("Nested Repeat 5*5 times")
 	{
@@ -93,6 +122,15 @@ TEST_CASE("repeater")
 		bt.run(cb);
 		REQUIRE(count == 25);
 		REQUIRE(result == Success);
+		MESSAGE("stack usage = " << std::abs(bottom - top));
+		// using continuation by rvalue reference
+		// g++     -Og -ggdb: 20672
+		// g++     -O3      : 3225
+		// g++     -Os      : 3153
+		// clang++ -O3      : 3489
+		// clang++ -Os      : 3305
+		// using continuation by value
+		// g++     -Os      : 4641
 	}
 	SUBCASE("Fail at third iteration")
 	{

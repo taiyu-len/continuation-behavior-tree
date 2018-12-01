@@ -1,11 +1,12 @@
 CXXFLAGS:=-std=c++17 -Wall -Wextra
 CPPFLAGS:=-Iinclude
+CXX=g++
 DEBUG?=1
 ifeq ($(DEBUG), 1)
   CXXFLAGS += -Og -ggdb -fsanitize=address,undefined
 else
-  CXXFLAGS += -O3
-  CPPFLAGS += -DNDEBUG -DDOCTEST_CONFIG_DISABLE
+  CXXFLAGS += -Os
+  CPPFLAGS += -DNDEBUG # -DDOCTEST_CONFIG_DISABLE
 endif
 
 sources:=main.cpp

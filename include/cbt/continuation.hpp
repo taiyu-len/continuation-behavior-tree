@@ -1,6 +1,7 @@
 #include <cbt/status.hpp>
 #include "cbt/unique_function.hpp"
 #include <type_traits>
+#include <cstddef>
 
 namespace cbt
 {
@@ -29,11 +30,11 @@ struct continuation
 	{
 		return x._ref == y._ref;
 	}
-	friend bool operator==(nullptr_t, continuation const& x) noexcept
+	friend bool operator==(std::nullptr_t, continuation const& x) noexcept
 	{
 		return x._ref == nullptr;
 	}
-	friend bool operator==(continuation const& x, nullptr_t) noexcept
+	friend bool operator==(continuation const& x, std::nullptr_t) noexcept
 	{
 		return x._ref == nullptr;
 	}
@@ -41,11 +42,11 @@ struct continuation
 	{
 		return !(x == y);
 	}
-	friend bool operator!=(nullptr_t, continuation const& x) noexcept
+	friend bool operator!=(std::nullptr_t, continuation const& x) noexcept
 	{
 		return x._ref != nullptr;
 	}
-	friend bool operator!=(continuation const& x, nullptr_t) noexcept
+	friend bool operator!=(continuation const& x, std::nullptr_t) noexcept
 	{
 		return x._ref != nullptr;
 	}

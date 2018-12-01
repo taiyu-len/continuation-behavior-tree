@@ -5,7 +5,7 @@
 namespace cbt
 {
 
-void behavior_t::run(continuation&& c) const
+void behavior_t::run(continuation&& c) const noexcept
 {
 	assert(_object != nullptr);
 	assert(c       != nullptr);

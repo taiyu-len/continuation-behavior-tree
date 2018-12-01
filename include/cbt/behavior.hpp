@@ -48,13 +48,13 @@ public:
 	template<typename T>
 	behavior_t(T&& x);
 
-	behavior_t(behavior_t &&) = default;
+	behavior_t(behavior_t &&) noexcept = default;
 	behavior_t(behavior_t const&) = delete;
-	behavior_t& operator=(behavior_t&& x) = default;
+	behavior_t& operator=(behavior_t&& x) noexcept = default;
 	behavior_t& operator=(behavior_t const&) = delete;
 
 	// calls the stored object with the given continuation
-	void run(continuation&& c) const;
+	void run(continuation&& c) const noexcept;
 
 protected:
 	// pointer to the saved object.
@@ -63,23 +63,23 @@ protected:
 
 struct behavior_t::concept_t
 {
-	virtual ~concept_t() = default;
-	virtual void start(continuation&&) = 0;
+	virtual ~concept_t() noexcept = default;
+	virtual void start(continuation&&) noexcept = 0;
 };
 
 template<typename T>
 struct behavior_t::model<T, true> : concept_t
 {
-	model(T x): _data(std::move(x)) {};
-	void start(continuation&& c) override { _data(std::move(c)); }
+	model(T x) noexcept: _data(std::move(x)) {};
+	void start(continuation&& c) noexcept override { _data(std::move(c)); }
 	T _data;
 };
 
 template<typename T>
 struct behavior_t::model<T, false> : concept_t
 {
-	model(T x): _data(std::move(x)) {};
-	void start(continuation&& c) override { c(_data()); }
+	model(T x) noexcept: _data(std::move(x)) {};
+	void start(continuation&& c) noexcept override { c(_data()); }
 	T _data;
 };
 
