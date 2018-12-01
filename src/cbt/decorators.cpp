@@ -2,17 +2,30 @@
 #include <doctest/doctest.h>
 namespace cbt
 {
-behavior_t inverter(behavior_t x)
+struct inverter_t
 {
-	return [child = std::move(x)](continuation resume)
+	behavior_t child;
+	continuation resume{};
+	continuation_type c{};
+	void operator()(continuation _resume)
 	{
-		return child([&](Status s) { return resume(! s); });
-	};
+		resume = std::move(_resume);
+		return child(c = [this](Status s)
+		{
+			return resume(!s);
+		});
+	}
+};
+
+behavior_t inverter(behavior_t&& x)
+{
+	return inverter_t{ std::move(x) };
 }
+
 TEST_CASE("inverter")
 {
 	auto result   = Invalid;
-	auto cb = [&](Status s) { result = s; };
+	auto cb = continuation_type([&](Status s) { result = s; });
 	auto leaf = behavior_t([]{ return Success; });
 	SUBCASE("single inversion")
 	{
@@ -30,24 +43,37 @@ TEST_CASE("inverter")
 	};
 }
 
-behavior_t repeater(behavior_t x, size_t limit)
+struct repeater_t
 {
-	return [child = std::move(x), limit](continuation resume)
+	behavior_t child;
+	size_t limit;
+	size_t count = 0;
+	continuation resume{};
+	continuation_type c{};
+	void operator()(continuation _resume)
 	{
+		count = 0;
+		resume = std::move(_resume);
 		if (limit == 0) return resume(Success);
-		else return child([&, limit=limit] (Status s) mutable
+		c = [this](Status s)
 		{
-			if (--limit == 0 || s == Failure) return resume(s);
-			else return child();
-		});
-	};
+			if (++count == limit || s == Failure) return resume(s);
+			else return child(c);
+		};
+		return child(c);
+	}
+};
+
+behavior_t repeater(behavior_t&& x, size_t limit)
+{
+	return repeater_t{ std::move(x), limit };
 }
 
 TEST_CASE("repeater")
 {
 	auto count = 0;
 	auto result = Invalid;
-	auto cb = [&](Status s) { result = s; };
+	auto cb = continuation_type([&](Status s) { result = s; });
 	auto leaf = behavior_t([&]{ ++count; return Success; });
 	SUBCASE("Repeat 5 times")
 	{

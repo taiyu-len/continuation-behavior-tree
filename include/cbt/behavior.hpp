@@ -18,6 +18,21 @@ namespace cbt
  * - or callable via x() => Status
  *   - for leaves that dont pass continuation any where
  *
+ *
+ * three places to put continuation_type, pros and cons
+ *
+ * within the concept_t
+ * - placed next to the behavior object, yet must access via pointer.
+ * - duplicated memory for the same continuations
+ * + allows arbitrary lambdas to be passed in as callbacks.
+ * within the behavior_t
+ * - duplicated memory for the same continuations
+ * + allows arbitrary lambdas to be passed in as callbacks.
+ * within the caller
+ * - must be stored in the function type
+ * + can reduce memory for multiple copies of the function
+ * + better control over location
+ *
  *****************************************************************************/
 class behavior_t
 {
@@ -32,14 +47,14 @@ public:
 
 	template<typename T>
 	behavior_t(T&& x);
+
 	behavior_t(behavior_t &&) = default;
+	behavior_t(behavior_t const&) = delete;
 	behavior_t& operator=(behavior_t&& x) = default;
+	behavior_t& operator=(behavior_t const&) = delete;
 
 	// calls the stored object with the given continuation
-	// - the first version saves the continuation before calling
-	// - the second uses the saved continuation to call with
-	void operator()(continuation_type c) const;
-	void operator()() const;
+	void operator()(continuation c) const;
 
 protected:
 	// pointer to the saved object.
@@ -50,8 +65,6 @@ struct behavior_t::concept_t
 {
 	virtual ~concept_t() = default;
 	virtual void start(continuation) = 0;
-	// default continuation is no-op.
-	continuation_type _continue = [](Status){};
 };
 
 template<typename T>

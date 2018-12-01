@@ -5,32 +5,34 @@ namespace cbt
 struct sequence_t
 {
 	std::vector<behavior_t> children;
-	size_t index;
-	void operator()(continuation resume)
+	size_t index = 0;
+	continuation resume = {};
+	continuation_type c = {};
+	void operator()(continuation _resume)
 	{
-		if (children.size() == 0) return resume(Success);
 		index = 0;
-		return next(std::move(resume));
-	}
-	void next(continuation resume)
-	{
-		children[index]([this, &resume](Status s)
-		{
-		if (++index == children.size() || s == Failure) return resume(s);
-		else return next(std::move(resume));
-		});
+		resume = std::move(_resume);
+		if (children.size() == 0) return resume(Success);
+		c = [this](Status s) {
+			if (++index == children.size() || s == Failure)
+			{
+				return resume(s);
+			}
+			return children[index](c);
+		};
+		children[0](c);
 	}
 };
 
 behavior_t sequence(std::vector<behavior_t> v)
 {
-	return sequence_t{ std::move(v), 0 };
+	return sequence_t{ std::move(v) };
 }
 TEST_CASE("sequence")
 {
 	int  count[3] = {0, 0, 0};
 	auto result = Invalid;
-	auto cb = [&](Status s) { result = s; };
+	auto cb = continuation_type([&](Status s) { result = s; });
 	SUBCASE("Succeed sequence all 3 times")
 	{
 		auto seq = sequence(

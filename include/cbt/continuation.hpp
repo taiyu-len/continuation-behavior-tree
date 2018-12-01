@@ -1,11 +1,11 @@
 #include <cbt/status.hpp>
-#include <functional>
+#include "cbt/unique_function.hpp"
 #include <type_traits>
 
 namespace cbt
 {
 // the object storing the continuation type within behavior_t
-using continuation_type = std::function<void(Status)>;
+using continuation_type = unique_function<void(Status)>;
 
 /*
  * a linear function reference.
