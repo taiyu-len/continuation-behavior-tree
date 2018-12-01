@@ -54,7 +54,7 @@ public:
 	behavior_t& operator=(behavior_t const&) = delete;
 
 	// calls the stored object with the given continuation
-	void operator()(continuation c) const;
+	void run(continuation&& c) const;
 
 protected:
 	// pointer to the saved object.
@@ -64,14 +64,14 @@ protected:
 struct behavior_t::concept_t
 {
 	virtual ~concept_t() = default;
-	virtual void start(continuation) = 0;
+	virtual void start(continuation&&) = 0;
 };
 
 template<typename T>
 struct behavior_t::model<T, true> : concept_t
 {
 	model(T x): _data(std::move(x)) {};
-	void start(continuation c) override { _data(std::move(c)); }
+	void start(continuation&& c) override { _data(std::move(c)); }
 	T _data;
 };
 
@@ -79,7 +79,7 @@ template<typename T>
 struct behavior_t::model<T, false> : concept_t
 {
 	model(T x): _data(std::move(x)) {};
-	void start(continuation c) override { c(_data()); }
+	void start(continuation&& c) override { c(_data()); }
 	T _data;
 };
 

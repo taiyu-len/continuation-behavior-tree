@@ -9,21 +9,21 @@ struct sequence_t
 	size_t index = 0;
 	continuation resume = {};
 	continuation_type c = {};
-	void operator()(continuation _resume)
+	void operator()(continuation&& _resume)
 	{
 		assert(_resume != nullptr);
+		if (children.size() == 0) return _resume(Success);
 		index = 0;
 		resume = std::move(_resume);
-		if (children.size() == 0) return resume(Success);
 		c = [this](Status s) {
 			assert(index < children.size());
 			if (++index == children.size() || s == Failure)
 			{
 				return resume(s);
 			}
-			return children[index](c);
+			return children[index].run(c);
 		};
-		children[0](c);
+		children[0].run(c);
 	}
 };
 
@@ -38,12 +38,12 @@ TEST_CASE("sequence")
 	auto cb = continuation_type([&](Status s) { result = s; });
 	SUBCASE("Succeed sequence all 3 times")
 	{
-		auto seq = sequence(
+		auto bt = sequence(
 			[&]{ ++count[0]; return Success; },
 			[&]{ ++count[1]; return Success; },
 			[&]{ ++count[2]; return Success; }
 		);
-		seq(cb);
+		bt.run(cb);
 		REQUIRE(result == Success);
 		REQUIRE(count[0] == 1);
 		REQUIRE(count[1] == 1);
@@ -51,12 +51,12 @@ TEST_CASE("sequence")
 	}
 	SUBCASE("Fail in middle of sequence ")
 	{
-		auto seq = sequence(
+		auto bt = sequence(
 			[&]{ ++count[0]; return Success; },
 			[&]{ ++count[1]; return Failure; },
 			[&]{ ++count[2]; return Success; }
 		);
-		seq(cb);
+		bt.run(cb);
 		REQUIRE(result == Failure);
 		REQUIRE(count[0] == 1);
 		REQUIRE(count[1] == 1);

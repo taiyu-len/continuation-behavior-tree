@@ -20,7 +20,7 @@ TEST_CASE("spawn")
 	SUBCASE("spawn and continue")
 	{
 		continuation c;
-		spawn([&](continuation cc){ ++count; c = std::move(cc); }, cb);
+		spawn([&](continuation&& cc){ ++count; c = std::move(cc); }, cb);
 		REQUIRE(count == 1);
 		REQUIRE(result == Invalid);
 		REQUIRE(c != nullptr);
@@ -41,7 +41,7 @@ TEST_CASE("spawn")
 		};
 		continuation c;
 		spawn(
-			[&](continuation cc){ c = std::move(cc); },
+			[&](continuation&& cc){ c = std::move(cc); },
 			respawn{count, result});
 		c(Success);
 		REQUIRE(c != nullptr);

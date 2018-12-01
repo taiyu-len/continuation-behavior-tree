@@ -27,7 +27,7 @@ private:
 			_cleanup(std::move(_child), s);
 			delete this;
 		};
-		_child(_continue);
+		_child.run(_continue);
 	}
 };
 

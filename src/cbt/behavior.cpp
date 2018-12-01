@@ -5,7 +5,7 @@
 namespace cbt
 {
 
-void behavior_t::operator()(continuation c) const
+void behavior_t::run(continuation&& c) const
 {
 	assert(_object != nullptr);
 	assert(c       != nullptr);
@@ -19,29 +19,29 @@ TEST_CASE("behavior")
 	auto cb = continuation_type([&](Status s) { result = s; });
 	SUBCASE("leaf model")
 	{
-		auto b = behavior_t([&]{ ++count; return Success; });
+		auto bt = behavior_t([&]{ ++count; return Success; });
 		REQUIRE(count == 0);
 		REQUIRE(result == Invalid);
-		b(cb);
+		bt.run(cb);
 		REQUIRE(result == Success);
 		REQUIRE(count == 1);
 	}
 	SUBCASE("continuation model")
 	{
-		auto b = behavior_t([&](continuation c){ ++count; c(Success); });
+		auto bt = behavior_t([&](continuation&& c){ ++count; c(Success); });
 		REQUIRE(count == 0);
 		REQUIRE(result == Invalid);
-		b(cb);
+		bt.run(cb);
 		REQUIRE(result == Success);
 		REQUIRE(count == 1);
 	}
 	SUBCASE("external continuation")
 	{
 		continuation cc;
-		auto b = behavior_t([&](continuation c){ ++count; cc = std::move(c); });
+		auto bt = behavior_t([&](continuation&& c){ ++count; cc = std::move(c); });
 		REQUIRE(count == 0);
 		REQUIRE(result == Invalid);
-		b(cb);
+		bt.run(cb);
 		REQUIRE(result == Invalid);
 		REQUIRE(count == 1);
 		SUBCASE("Success")
