@@ -3,7 +3,8 @@
 #include <iosfwd>
 namespace cbt
 {
-enum Status {
+enum Status
+{
 	Invalid = -1,
 	Failure = +0,
 	Success = +1

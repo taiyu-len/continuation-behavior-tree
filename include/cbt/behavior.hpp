@@ -27,7 +27,8 @@ struct takes_continuation<T,
  *   - for leaves that dont pass continuation any where
  *
  *****************************************************************************/
-class behavior_t {
+class behavior_t
+{
 	struct concept_t;
 	template<typename T, bool> struct model;
 
@@ -53,7 +54,8 @@ protected:
 	ptr_t _object;
 };
 
-struct behavior_t::concept_t {
+struct behavior_t::concept_t
+{
 	virtual ~concept_t() = default;
 	virtual void start(continue_t const&) = 0;
 	// default continuation is no-op.
@@ -61,14 +63,16 @@ struct behavior_t::concept_t {
 };
 
 template<typename T>
-struct behavior_t::model<T, true> : concept_t {
+struct behavior_t::model<T, true> : concept_t
+{
 	model(T x): _data(std::move(x)) {};
 	void start(continue_t const& c) override { _data(c); }
 	T _data;
 };
 
 template<typename T>
-struct behavior_t::model<T, false> : concept_t {
+struct behavior_t::model<T, false> : concept_t
+{
 	model(T x): _data(std::move(x)) {};
 	void start(continue_t const& c) override { c(_data()); }
 	T _data;

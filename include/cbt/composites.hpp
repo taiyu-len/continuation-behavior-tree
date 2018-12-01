@@ -7,7 +7,8 @@ namespace cbt
 behavior_t sequence(std::vector<behavior_t>);
 
 template<typename ...T>
-behavior_t sequence(T&&... xs) {
+behavior_t sequence(T&&... xs)
+{
 	std::vector<behavior_t> v;
 	v.reserve(sizeof...(T));
 	int _[] = { (v.push_back(std::move(xs)), 0)... };
