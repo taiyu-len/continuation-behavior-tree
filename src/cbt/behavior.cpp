@@ -3,7 +3,7 @@
 #include <doctest/doctest.h>
 namespace cbt
 {
-void behavior_t::operator()(continue_t c) const
+void behavior_t::operator()(continuation_type c) const
 {
 	_object->_continue = std::move(c);
 	operator()();
@@ -30,7 +30,7 @@ TEST_CASE("behavior")
 	}
 	SUBCASE("continuation model")
 	{
-		auto b = behavior_t([&](continue_t c){ ++count; c(Success); });
+		auto b = behavior_t([&](continuation c){ ++count; c(Success); });
 		REQUIRE(count == 0);
 		REQUIRE(result == Invalid);
 		b(cb);
@@ -39,8 +39,8 @@ TEST_CASE("behavior")
 	}
 	SUBCASE("external continuation")
 	{
-		continue_t cc;
-		auto b = behavior_t([&](continue_t c){ ++count; cc = c; });
+		continuation cc;
+		auto b = behavior_t([&](continuation c){ ++count; cc = std::move(c); });
 		REQUIRE(count == 0);
 		REQUIRE(result == Invalid);
 		b(cb);
@@ -62,13 +62,13 @@ TEST_CASE("behavior")
 	SUBCASE("self contained lifetime")
 	{
 		// avoid copying continuation object as that keeps root alive
-		continue_t c;
-		auto bt = behavior_t([&](continue_t const& cc){ ++count; c = cc; });
+		continuation c;
+		auto bt = behavior_t([&](continuation cc){ ++count; c = std::move(cc); });
 		auto done = false;
 		struct root_t {
-			// use raw pointer to manage lifetime.
-			// TODO improve this a lot
-			behavior_t *tree;
+			// std::function cannot take move only types such as
+			// unique_ptr
+			std::shared_ptr<behavior_t> tree;
 
 			bool   &done;
 			Status &result;
@@ -77,7 +77,6 @@ TEST_CASE("behavior")
 			// continuation
 			void operator()() {
 				(*tree)(std::move(*this));
-				tree = nullptr;
 			}
 			// calls this once the tree is finished.
 			void operator()(Status s)
@@ -86,18 +85,19 @@ TEST_CASE("behavior")
 				result = s;
 				done = true;
 				// can restart tree, or do whatever
-
-				delete tree;
+				// in this case delete it
+				tree.reset();
 			}
 		};
 		root_t r = {
-			new behavior_t(std::move(bt)),
+			std::make_shared<behavior_t>(std::move(bt)),
 			done,
 			result
 		};
 		// run the tree
 		r();
 		// completely self contained now.
+		REQUIRE(r.tree.get()  == nullptr);
 		REQUIRE(done  == false);
 		REQUIRE(count == 1);
 		REQUIRE(result  == Invalid);

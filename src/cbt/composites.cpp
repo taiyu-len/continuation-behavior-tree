@@ -6,18 +6,18 @@ struct sequence_t
 {
 	std::vector<behavior_t> children;
 	size_t index;
-	void operator()(continue_t const& resume)
+	void operator()(continuation resume)
 	{
 		if (children.size() == 0) return resume(Success);
 		index = 0;
-		return next(resume);
+		return next(std::move(resume));
 	}
-	void next(continue_t const& resume)
+	void next(continuation resume)
 	{
 		children[index]([this, &resume](Status s)
 		{
 		if (++index == children.size() || s == Failure) return resume(s);
-		else return next(resume);
+		else return next(std::move(resume));
 		});
 	}
 };

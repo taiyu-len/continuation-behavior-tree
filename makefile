@@ -9,7 +9,8 @@ else
 endif
 
 sources:=main.cpp
-sources+=behavior.cpp composites.cpp decorators.cpp status.cpp
+sources+=behavior.cpp continuation.cpp
+sources+=composites.cpp decorators.cpp status.cpp
 sources:=$(addprefix src/cbt/,$(sources))
 objects:=$(addsuffix .o,$(basename $(sources)))
 depends:=$(addsuffix .d,$(basename $(sources)))

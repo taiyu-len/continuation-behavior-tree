@@ -1,23 +1,15 @@
 #ifndef CBT_BEHAVIOR_HPP
 #define CBT_BEHAVIOR_HPP
-#include <functional>
 #include <memory>
-#include <type_traits>
 #include "cbt/status.hpp"
+#include "cbt/continuation.hpp"
 
 namespace cbt
 {
-using continue_t = std::function<void(Status)>;
-
-template<typename T, typename = void>
-struct takes_continuation : std::false_type {};
-template<typename T>
-struct takes_continuation<T,
-	std::void_t<decltype(std::declval<T>()(continue_t{}))>> : std::true_type{};
 /*
  * a behavior_t can be constructed with any object that can be
  * - move constructed;
- * - callable via x(continue_t const&);
+ * - callable via x(continuation);
  *   - the continuation is a valid function
  *   - the continuation may only be called once, after which the reference is
  *     expeceted to be invalid.
@@ -46,7 +38,7 @@ public:
 	// calls the stored object with the given continuation
 	// - the first version saves the continuation before calling
 	// - the second uses the saved continuation to call with
-	void operator()(continue_t c) const;
+	void operator()(continuation_type c) const;
 	void operator()() const;
 
 protected:
@@ -57,16 +49,16 @@ protected:
 struct behavior_t::concept_t
 {
 	virtual ~concept_t() = default;
-	virtual void start(continue_t const&) = 0;
+	virtual void start(continuation) = 0;
 	// default continuation is no-op.
-	continue_t _continue = [](Status){};
+	continuation_type _continue = [](Status){};
 };
 
 template<typename T>
 struct behavior_t::model<T, true> : concept_t
 {
 	model(T x): _data(std::move(x)) {};
-	void start(continue_t const& c) override { _data(c); }
+	void start(continuation c) override { _data(std::move(c)); }
 	T _data;
 };
 
@@ -74,7 +66,7 @@ template<typename T>
 struct behavior_t::model<T, false> : concept_t
 {
 	model(T x): _data(std::move(x)) {};
-	void start(continue_t const& c) override { c(_data()); }
+	void start(continuation c) override { c(_data()); }
 	T _data;
 };
 

@@ -4,7 +4,7 @@ namespace cbt
 {
 behavior_t inverter(behavior_t x)
 {
-	return [child = std::move(x)](continue_t const& resume)
+	return [child = std::move(x)](continuation resume)
 	{
 		return child([&](Status s) { return resume(! s); });
 	};
@@ -32,7 +32,7 @@ TEST_CASE("inverter")
 
 behavior_t repeater(behavior_t x, size_t limit)
 {
-	return [child = std::move(x), limit](continue_t const& resume)
+	return [child = std::move(x), limit](continuation resume)
 	{
 		if (limit == 0) return resume(Success);
 		else return child([&, limit=limit] (Status s) mutable
