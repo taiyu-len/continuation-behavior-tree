@@ -1,73 +1,66 @@
-#ifndef CBT_UNIQUE_FUNCTION_HPP
-#define CBT_UNIQUE_FUNCTION_HPP
-#include <functional>
-#include <type_traits>
+#pragma once
+#include <memory>
 #include <utility>
+#include <cassert>
+// https://github.com/arcanis/tco
+// rewritten version of the my::function from this.
 
 namespace cbt
 {
-// wrapper around std::function allowing move only types
 template<typename T>
-struct unique_function : private std::function<T>
+class unique_function;
+
+template<typename R, typename...Args>
+class unique_function<R(Args...)>
 {
-	template<typename Fn, typename = void>
-	struct wrapper;
-
-	// specialization for CopyConstructible Fn
-	template<typename Fn>
-	struct wrapper<Fn, std::enable_if_t< std::is_copy_constructible<Fn>::value >>
-	{
-		Fn fn;
-
-		template<typename... Args>
-		auto operator()(Args&&... args) { return fn(std::forward<Args>(args)...); }
-	};
-
-	// specialization for MoveConstructible-only Fn
-	template<typename Fn>
-	struct wrapper<Fn, std::enable_if_t< !std::is_copy_constructible<Fn>::value
-		&& std::is_move_constructible<Fn>::value >>
-	{
-		Fn fn;
-
-		wrapper(Fn&& fn) : fn(std::move(fn)) { }
-
-		wrapper(wrapper&&) = default;
-		wrapper& operator=(wrapper&&) = default;
-
-		// these two functions are instantiated by std::function
-		// and are never called
-		wrapper(const wrapper& rhs) : fn(const_cast<Fn&&>(rhs.fn)) { throw 0; } // hack to initialize fn for non-DefaultContructible types
-		wrapper& operator=(wrapper&) { throw 0; }
-
-		template<typename... Args>
-		auto operator()(Args&&... args) { return fn(std::forward<Args>(args)...); }
-	};
-
-	using base = std::function<T>;
-
+	using function_t = R(Args...);
+	struct concept_t;
+	template<typename T> struct model;
+	template<typename T> using model_t = model<std::decay_t<T>>;
 public:
 	unique_function() noexcept = default;
-	unique_function(std::nullptr_t) noexcept : base(nullptr) { }
+	unique_function(std::nullptr_t) noexcept {};
+	unique_function(unique_function &&) noexcept = default;
+	unique_function& operator=(unique_function &&) noexcept = default;
+	unique_function& operator=(std::nullptr_t) noexcept { _ptr.reset(); };
 
-	template<typename Fn>
-	unique_function(Fn&& f) : base(wrapper<Fn>{ std::forward<Fn>(f) }) { }
+	template<typename T>
+	unique_function(T&& x)
+	: _ptr(std::make_unique<model_t<T>>(std::forward<T>(x))) {};
 
-	unique_function(unique_function&&) = default;
-	unique_function& operator=(unique_function&&) = default;
-
-	unique_function& operator=(std::nullptr_t) { base::operator=(nullptr); return *this; }
-
-	template<typename Fn>
-	unique_function& operator=(Fn&& f)
+	R operator()(Args... args) const
 	{
-		base::operator=(wrapper<Fn>{ std::forward<Fn>(f) });
-		return *this;
+		assert(_ptr != nullptr);
+		return _ptr->operator()(std::forward<Args>(args) ...);
+	};
+
+	operator bool() const noexcept { return bool(_ptr); }
+	friend void swap(unique_function& x, unique_function& y)
+	{
+		std::swap(x._ptr, y._ptr);
 	}
-	using base::operator();
+	friend bool operator==(unique_function const& x, unique_function const& y)
+	{
+		return x._ptr == y._ptr;
+	}
+	friend bool operator!=(unique_function const& x, unique_function const& y)
+	{
+		return !(x == y);
+	}
+
+private:
+	struct concept_t
+	{
+		virtual ~concept_t() noexcept = default;
+		virtual R operator()(Args... args) = 0;
+	};
+	template<typename T>
+	struct model : concept_t
+	{
+		model(T&& x): _data(std::move(x)) {};
+		R operator()(Args... args) override { return _data(args...); }
+		T _data;
+	};
+	std::unique_ptr<concept_t> _ptr {};
 };
-
-} // cbt
-
-
-#endif // CBT_UNIQUE_FUNCTION_HPP
+}

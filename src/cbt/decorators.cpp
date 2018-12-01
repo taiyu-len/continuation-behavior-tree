@@ -79,12 +79,12 @@ behavior_t repeater(behavior_t&& x, size_t limit)
 intptr_t stack_pointer()
 {
 	char p;
-#if defined(__GNUC__)
-	// gcc has, and requires std::launder for this to work
-	return reinterpret_cast<intptr_t>(std::launder(&p));
-#else // defined(__clang__)
+#if defined(__clang__)
 	// clang does not have std::launder, but works without it
 	return reinterpret_cast<intptr_t>(&p);
+#else // defined(__GNUC__)
+	// gcc has, and requires std::launder for this to work
+	return reinterpret_cast<intptr_t>(std::launder(&p));
 #endif
 }
 
@@ -107,6 +107,13 @@ TEST_CASE("repeater")
 		REQUIRE(count == 5);
 		REQUIRE(result == Success);
 		MESSAGE("stack usage = " << std::abs(bottom - top));
+		// using -flto
+		// g++     -O3      : 425
+		// using improved unique_function
+		// g++     -O3      : 505
+		// g++     -Os      : 545
+		// clang++ -O3      : 529
+		// clang++ -Os      : 521
 		// using continuation by rvalue reference
 		// g++     -Og -ggdb: 3792
 		// g++     -O3      : 745
@@ -123,6 +130,13 @@ TEST_CASE("repeater")
 		REQUIRE(count == 25);
 		REQUIRE(result == Success);
 		MESSAGE("stack usage = " << std::abs(bottom - top));
+		// using -flto
+		// g++     -O3      : 1465
+		// using improved unique_function
+		// g++     -O3      : 1945
+		// g++     -Os      : 1985
+		// clang++ -O3      : 2289
+		// clang++ -Os      : 2281
 		// using continuation by rvalue reference
 		// g++     -Og -ggdb: 20672
 		// g++     -O3      : 3225

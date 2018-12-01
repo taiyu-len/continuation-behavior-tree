@@ -5,7 +5,7 @@ DEBUG?=1
 ifeq ($(DEBUG), 1)
   CXXFLAGS += -Og -ggdb -fsanitize=address,undefined
 else
-  CXXFLAGS += -Os
+  CXXFLAGS += -O3 -flto
   CPPFLAGS += -DNDEBUG # -DDOCTEST_CONFIG_DISABLE
 endif
 
