@@ -1,53 +1,70 @@
 An WIP implementation of behavior trees using continuations designed to work
 with asio
 
-the behavior tree is an object the can be called via `run(fn)` or `run()`
-the first version takes a continuation of the parent node, which when the
-behavior node is done it works and then returns up the behavior tree.
-the second version uses the existing continuation when called again, with the
-default being a no-op.
+the `behavior_t` object is smart pointer wrapping an object satisfying the
+`behavior` concept.
+the `behavior_t` object can be called via `bt(fn)` or `bt()`
+1. takes a continuation which resumes the calling function, eventually called
+   via `fn(Success)` or `fn(Failure)`
+2. uses the existing continuation when called again. the default being a no-op.
 
-the run function then calls the start() virtual function.
-
-the start function is responsible for setting up the state of the object,  
-depending on the type of node, it can do a few things.
-
+the `behavior` concept is any object that can be called via `bt(fn)` or
+`Status(bt())`.
+1. taking the continuation of the calling function.
+2. returns a Status which is passed into a continutation directly
+it function call is responsible for setting up the state of the behavior,
+and depending on the type may do a few things
 - Leaf node
   - Can resume the continuation with some status
     ```c++
-    leaf::start() {
+    leaf::operator()(resume&) {
       do_stuff();
       return resume(Success);
     };
+    // OR
+    leaf::operator()() -> Status {
+      do_stuff();
+      return Success; // or Failure
+    }
     ```
   - Can pass the continuation to an executor to be called later, such as a
     waiting for a period of time, or reading a socket, or other async tasks.
     ```c++
-    leaf::start() {
+    leaf::operator()(resume&) {
       do_stuff();
-      return event_queue.post([this]{
+      return event_queue.post([this, &] {
         do_stuff_later();
         return resume(Success);
       });
     };
     ```
-- Composite nodes
+- Branch nodes
   - creates and passes a continuation to its child which when completed calls
     the parent continuation.
     ```c++
-    composite::start() {
+    composite::operator()(resume&) {
       do_stuff();
-      return child->run([this](Status s) {
+      return child([this, &](Status s) {
         do_stuff();
-        if (s) return child->run(); // run child again with this callback
-        else return resume(s);
+        if (s) return child(); // run child again with this callback
+        else return resume(s); // resume the calling function
       });
     };
     ```
-
-The root of a behavior tree can take a final continuation that is called once it
-is fully complete. for example, it can delete the behavior tree, or be used
-signal the completion of the tree elsewhere, or restart the tree completely.
+    - an example for when you cannot reuse continuations
+    ```c++
+    composite::operator()(resume&) {
+      do_stuff();
+      next(resume);
+    }
+    composite::next(resume&) {
+      return child[index]([this, &](Status s) {
+        do_stuff();
+        if (s) return next(resume); // run next child again with this callback
+        else return resume(s); // resume the calling function
+      });
+    }
+    ```
 
 
 Unlike regular behavoir trees, there is no `Running` state due to the
@@ -60,7 +77,7 @@ TODO:
 2. [ ] implement or consider alternate designs
     - [ ] stateless tree by storing state into continuations
     - [ ] templated behavior nodes for one big compile time object
-    - [ ] use trait like polymorphic objects to avoid inheritence.
+    - [x] use trait like polymorphic objects to avoid inheritence.
 3. [ ] try to ensure tailcalls, or restructure to avoid needing to.
 4. [ ] write tests using boost::asio functionality
 5. [ ] implement nodes taking executors for better asio compatibility
