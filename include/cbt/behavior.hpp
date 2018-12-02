@@ -37,11 +37,11 @@ namespace cbt
 class behavior_t
 {
 	struct concept_t;
-	template<typename T, bool> struct model;
+	template<typename T, bool, bool> struct model;
 
-	template<typename T> using model_t = model<
-		std::decay_t<T>,
-		takes_continuation<T>::value>;
+	template<typename T> using model_t = model<std::decay_t<T>,
+		std::is_invocable_r<void, T, continuation>::value,
+		std::is_invocable_r<Status, T>::value>;
 public:
 	using ptr_t = std::unique_ptr<struct concept_t>;
 
@@ -54,7 +54,7 @@ public:
 	behavior_t& operator=(behavior_t const&) = delete;
 
 	// calls the stored object with the given continuation
-	void run(continuation&& c) const noexcept;
+	void run(continuation c) const noexcept;
 
 protected:
 	// pointer to the saved object.
@@ -64,23 +64,28 @@ protected:
 struct behavior_t::concept_t
 {
 	virtual ~concept_t() noexcept = default;
-	virtual void start(continuation&&) noexcept = 0;
+	virtual void start(continuation) noexcept = 0;
 };
 
 template<typename T>
-struct behavior_t::model<T, true> : concept_t
+struct behavior_t::model<T, true, false> : concept_t
 {
 	model(T x) noexcept: _data(std::move(x)) {};
-	void start(continuation&& c) noexcept override { _data(std::move(c)); }
+	void start(continuation c) noexcept override { _data(std::move(c)); }
 	T _data;
 };
 
 template<typename T>
-struct behavior_t::model<T, false> : concept_t
+struct behavior_t::model<T, false, true> : concept_t
 {
 	model(T x) noexcept: _data(std::move(x)) {};
-	void start(continuation&& c) noexcept override { c(_data()); }
+	void start(continuation c) noexcept override { c(_data()); }
 	T _data;
+};
+
+template<typename T, bool x, bool y>
+struct behavior_t::model {
+	static_assert(x != y, "Ambiguous object passed into behavior_t");
 };
 
 template<typename T>

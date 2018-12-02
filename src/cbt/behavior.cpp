@@ -5,7 +5,7 @@
 namespace cbt
 {
 
-void behavior_t::run(continuation&& c) const noexcept
+void behavior_t::run(continuation c) const noexcept
 {
 	assert(_object != nullptr);
 	assert(c       != nullptr);
@@ -28,7 +28,7 @@ TEST_CASE("behavior")
 	}
 	SUBCASE("continuation model")
 	{
-		auto bt = behavior_t([&](continuation&& c){ ++count; c(Success); });
+		auto bt = behavior_t([&](continuation c){ ++count; c(Success); });
 		REQUIRE(count == 0);
 		REQUIRE(result == Invalid);
 		bt.run(cb);
@@ -38,7 +38,7 @@ TEST_CASE("behavior")
 	SUBCASE("external continuation")
 	{
 		continuation cc;
-		auto bt = behavior_t([&](continuation&& c){ ++count; cc = std::move(c); });
+		auto bt = behavior_t([&](continuation c){ ++count; cc = std::move(c); });
 		REQUIRE(count == 0);
 		REQUIRE(result == Invalid);
 		bt.run(cb);

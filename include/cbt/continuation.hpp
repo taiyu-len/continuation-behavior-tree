@@ -2,6 +2,7 @@
 #include "cbt/unique_function.hpp"
 #include <type_traits>
 #include <cstddef>
+#include <cassert>
 
 namespace cbt
 {
@@ -12,15 +13,36 @@ using continuation_type = unique_function<void(Status)>;
  * a linear function reference.
  * - must be called exactly once before destruction
  * - or moved into another continuation object.
+ *
+ * In non-debug mode, the object is trivially copyable, simply a pointer, which
+ * is required to allow tail-call optimizations in the callbacks.
+ * however, it loses the linear behavior described above.
+ *
+ * in debug mode, it keeps the behavior, but is less efficient.
  */
 struct continuation
 {
 	continuation() = default;
 	continuation(continuation_type const& x) noexcept;
-	continuation(continuation&& x) noexcept;
-	continuation& operator=(continuation&& x) noexcept;
 	continuation& operator=(continuation_type const& x) noexcept;
-	~continuation() noexcept;
+#if defined(NDEBUG)
+	continuation(continuation&& x) noexcept = default;
+	continuation& operator=(continuation&& x) noexcept = default;
+#else // !defined(NDEBUG)
+	continuation(continuation&& x) noexcept
+	:_ref(std::exchange(x._ref, nullptr))
+	{}
+	continuation& operator=(continuation&& x) noexcept
+	{
+		assert(_ref == nullptr);
+		_ref = std::exchange(x._ref, nullptr);
+		return *this;
+	}
+	~continuation() noexcept
+	{
+		assert(_ref == nullptr);
+	}
+#endif
 
 	void operator()(Status);
 
@@ -58,16 +80,5 @@ struct continuation
 private:
 	continuation_type const* _ref = nullptr;
 };
-
-template<typename T, typename = void>
-struct takes_continuation : std::false_type {};
-
-template<typename T>
-struct takes_continuation<T,
-	std::void_t<decltype(
-		std::declval<T>() ( // T is callable with continuation{}
-			std::declval<continuation>()))>>
-	: std::true_type{};
-
 } // cbt
 

@@ -10,7 +10,7 @@ struct inverter_t
 	behavior_t child;
 	continuation resume{};
 	continuation_type c{};
-	void operator()(continuation&& _resume) noexcept
+	void operator()(continuation _resume) noexcept
 	{
 		assert(_resume != nullptr);
 		resume = std::move(_resume);
@@ -55,7 +55,7 @@ struct repeater_t
 	size_t count = 0;
 	continuation resume{};
 	continuation_type c{};
-	void operator()(continuation&& _resume) noexcept
+	void operator()(continuation _resume) noexcept
 	{
 		assert(_resume != nullptr);
 		count = 0;
@@ -106,22 +106,6 @@ TEST_CASE("repeater")
 		bt.run(cb);
 		REQUIRE(count == 5);
 		REQUIRE(result == Success);
-		MESSAGE("stack usage = " << std::abs(bottom - top));
-		// using -flto
-		// g++     -O3      : 425
-		// using improved unique_function
-		// g++     -O3      : 505
-		// g++     -Os      : 545
-		// clang++ -O3      : 529
-		// clang++ -Os      : 521
-		// using continuation by rvalue reference
-		// g++     -Og -ggdb: 3792
-		// g++     -O3      : 745
-		// g++     -Os      : 753
-		// clang++ -O3      : 769
-		// clang++ -Os      : 745
-		// using continuation by value
-		// g++     -Os      : 1041
 	}
 	SUBCASE("Nested Repeat 5*5 times")
 	{
@@ -129,22 +113,16 @@ TEST_CASE("repeater")
 		bt.run(cb);
 		REQUIRE(count == 25);
 		REQUIRE(result == Success);
-		MESSAGE("stack usage = " << std::abs(bottom - top));
-		// using -flto
-		// g++     -O3      : 1465
-		// using improved unique_function
-		// g++     -O3      : 1945
-		// g++     -Os      : 1985
-		// clang++ -O3      : 2289
-		// clang++ -Os      : 2281
-		// using continuation by rvalue reference
-		// g++     -Og -ggdb: 20672
-		// g++     -O3      : 3225
-		// g++     -Os      : 3153
-		// clang++ -O3      : 3489
-		// clang++ -Os      : 3305
-		// using continuation by value
-		// g++     -Os      : 4641
+	}
+	SUBCASE("Tail calls")
+	{
+		auto r1 = repeater([]{ return Success; }, 5);
+		auto r2 = repeater([]{ return Success; }, 10);
+		r1.run(cb);
+		auto stack_5 = std::abs(bottom - top);
+		r2.run(cb);
+		auto stack_10 = std::abs(bottom - top);
+		CHECK(stack_5 == stack_10);
 	}
 	SUBCASE("Fail at third iteration")
 	{

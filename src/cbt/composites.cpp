@@ -9,7 +9,7 @@ struct sequence_t
 	size_t index = 0;
 	continuation resume = {};
 	continuation_type c = {};
-	void operator()(continuation&& _resume)
+	void operator()(continuation _resume)
 	{
 		assert(_resume != nullptr);
 		if (children.size() == 0) return _resume(Success);
