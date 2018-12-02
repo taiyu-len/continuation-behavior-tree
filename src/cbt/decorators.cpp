@@ -1,10 +1,11 @@
 #include "cbt/decorators.hpp"
+#include "cbt/stack_tracker.hpp"
 #include <cassert>
 #include <doctest/doctest.h>
-#include <cmath>
 
 namespace cbt
 {
+
 struct inverter_t
 {
 	behavior_t child;
@@ -46,6 +47,19 @@ TEST_CASE("inverter")
 		bt.run(cb);
 		REQUIRE(result == Success);
 	};
+	SUBCASE("tail call")
+	{
+		stack_tracker st;
+		auto bt = inverter([]{ return Success; });
+		bt.run(st.cb());
+		auto stack_1 = st.diff();
+
+		bt = inverter(std::move(bt));
+		bt = inverter(std::move(bt));
+		bt.run(st.cb());
+		auto stack_3 = st.diff();
+		CHECK(stack_1 == stack_3);
+	}
 }
 
 struct repeater_t
@@ -76,29 +90,11 @@ behavior_t repeater(behavior_t&& x, size_t limit)
 	return repeater_t{ std::move(x), limit };
 }
 
-intptr_t stack_pointer()
-{
-	char p;
-#if defined(__clang__)
-	// clang does not have std::launder, but works without it
-	return reinterpret_cast<intptr_t>(&p);
-#else // defined(__GNUC__)
-	// gcc has, and requires std::launder for this to work
-	return reinterpret_cast<intptr_t>(std::launder(&p));
-#endif
-}
-
 TEST_CASE("repeater")
 {
-	auto bottom = stack_pointer();
-	auto top    = bottom;
-
 	auto count = 0;
 	auto result = Invalid;
-	auto cb = continuation_type([&](Status s)
-	{
-		result = s; top = stack_pointer();
-	});
+	auto cb = continuation_type([&](Status s) { result = s; });
 	auto leaf = behavior_t([&]{ ++count; return Success; });
 	SUBCASE("Repeat 5 times")
 	{
@@ -114,16 +110,6 @@ TEST_CASE("repeater")
 		REQUIRE(count == 25);
 		REQUIRE(result == Success);
 	}
-	SUBCASE("Tail calls")
-	{
-		auto r1 = repeater([]{ return Success; }, 5);
-		auto r2 = repeater([]{ return Success; }, 10);
-		r1.run(cb);
-		auto stack_5 = std::abs(bottom - top);
-		r2.run(cb);
-		auto stack_10 = std::abs(bottom - top);
-		CHECK(stack_5 == stack_10);
-	}
 	SUBCASE("Fail at third iteration")
 	{
 		leaf = [&]{ return ++count == 3 ? Failure : Success; };
@@ -138,6 +124,17 @@ TEST_CASE("repeater")
 		bt.run(cb);
 		REQUIRE(count == 0);
 		REQUIRE(result == Success);
+	}
+	SUBCASE("Tail call")
+	{
+		stack_tracker st;
+		auto r1 = repeater([]{ return Success; }, 5);
+		r1.run(st.cb());
+		auto stack_5 = st.diff();
+		r1 = repeater(std::move(r1), 5);
+		r1.run(st.cb());
+		auto stack_55 = st.diff();
+		CHECK(stack_5 == stack_55);
 	}
 }
 } // cbt
