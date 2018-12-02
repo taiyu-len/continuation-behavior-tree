@@ -17,7 +17,7 @@ and depending on the type may do a few things
 - Leaf node
   - Can resume the continuation with some status
     ```c++
-    leaf::operator()(resume&) {
+    leaf::operator()(continuation resume) {
       do_stuff();
       return resume(Success);
     };
@@ -30,11 +30,12 @@ and depending on the type may do a few things
   - Can pass the continuation to an executor to be called later, such as a
     waiting for a period of time, or reading a socket, or other async tasks.
     ```c++
-    leaf::operator()(resume&) {
+    leaf::operator()(continuation resume) {
+      this->resume_caller = std::move(resume);
       do_stuff();
-      return event_queue.post([this, &] {
-        do_stuff_later();
-        return resume(Success);
+      return event_queue.post([this](std::error_code ec) {
+        do_stuff_later(ec);
+        return resume_caller(Success);
       });
     };
     ```
@@ -42,30 +43,19 @@ and depending on the type may do a few things
   - creates and passes a continuation to its child which when completed calls
     the parent continuation.
     ```c++
-    composite::operator()(resume&) {
-      do_stuff();
-      return child([this, &](Status s) {
+    composite::operator()(continuation resume) {
+      this->resume_caller = std::move(resume); // store resume
+      this->resume_this   = [this](Status s) {
         do_stuff();
-        if (s) return child(); // run child again with this callback
-        else return resume(s); // resume the calling function
-      });
+        // rerun a child node with this continuation
+        if (condition()) return child.run(resume_this);
+        // resume parent continuation
+        else resume_caller(status());
+      };
+      // run child with this continuation
+      child.run(resume_this);
     };
     ```
-    - an example for when you cannot reuse continuations
-    ```c++
-    composite::operator()(resume&) {
-      do_stuff();
-      next(resume);
-    }
-    composite::next(resume&) {
-      return child[index]([this, &](Status s) {
-        do_stuff();
-        if (s) return next(resume); // run next child again with this callback
-        else return resume(s); // resume the calling function
-      });
-    }
-    ```
-
 
 Unlike regular behavoir trees, there is no `Running` state due to the
 continuations, since we simply continue the tree by calling them once we finish
@@ -78,7 +68,7 @@ TODO:
     - [ ] stateless tree by storing state into continuations
     - [ ] templated behavior nodes for one big compile time object
     - [x] use trait like polymorphic objects to avoid inheritence.
-3. [ ] try to ensure tailcalls, or restructure to avoid needing to.
+3. [x] ensure tailcalls
 4. [ ] write tests using boost::asio functionality
 5. [ ] implement nodes taking executors for better asio compatibility
 6. [ ] write a toy server or something similar to test it with a full program.
