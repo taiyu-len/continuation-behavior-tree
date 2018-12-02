@@ -31,11 +31,7 @@ private:
 	}
 };
 
-void spawn(behavior_t&& x)
-{
-	auto noop = [](behavior_t, Status) { };
-	spawn_t<decltype(noop)>::spawn(std::move(x), noop);
-}
+void spawn(behavior_t&& x);
 
 template<typename T>
 void spawn(behavior_t&& x, T&& y)

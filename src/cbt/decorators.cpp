@@ -1,5 +1,4 @@
 #include "cbt/decorators.hpp"
-#include "cbt/stack_tracker.hpp"
 #include <cassert>
 #include <doctest/doctest.h>
 
@@ -47,19 +46,6 @@ TEST_CASE("inverter")
 		bt.run(cb);
 		REQUIRE(result == Success);
 	};
-	SUBCASE("tail call")
-	{
-		stack_tracker st;
-		auto bt = inverter([]{ return Success; });
-		bt.run(st.cb());
-		auto stack_1 = st.diff();
-
-		bt = inverter(std::move(bt));
-		bt = inverter(std::move(bt));
-		bt.run(st.cb());
-		auto stack_3 = st.diff();
-		CHECK(stack_1 == stack_3);
-	}
 }
 
 struct repeater_t
@@ -124,17 +110,6 @@ TEST_CASE("repeater")
 		bt.run(cb);
 		REQUIRE(count == 0);
 		REQUIRE(result == Success);
-	}
-	SUBCASE("Tail call")
-	{
-		stack_tracker st;
-		auto r1 = repeater([]{ return Success; }, 5);
-		r1.run(st.cb());
-		auto stack_5 = st.diff();
-		r1 = repeater(std::move(r1), 5);
-		r1.run(st.cb());
-		auto stack_55 = st.diff();
-		CHECK(stack_5 == stack_55);
 	}
 }
 } // cbt

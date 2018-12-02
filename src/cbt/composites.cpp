@@ -1,5 +1,4 @@
 #include "cbt/composites.hpp"
-#include "cbt/stack_tracker.hpp"
 #include <cassert>
 #include <doctest/doctest.h>
 namespace cbt
@@ -63,27 +62,6 @@ TEST_CASE("sequence")
 		REQUIRE(count[0] == 1);
 		REQUIRE(count[1] == 1);
 		REQUIRE(count[2] == 0);
-	}
-	SUBCASE("Tail call")
-	{
-		stack_tracker st;
-		auto bt = sequence(
-			[]{ return Success; },
-			[]{ return Success; });
-		bt.run(st.cb());
-		auto stack_2 = st.diff();
-		bt = sequence(
-			std::move(bt),
-			[]{ return Success; },
-			[]{ return Success; });
-		bt = sequence(
-			std::move(bt),
-			[]{ return Success; },
-			[]{ return Success; });
-		bt.run(st.cb());
-		auto stack_6 = st.diff();
-		CHECK(stack_2 == stack_6);
-
 	}
 }
 } // cbt

@@ -3,6 +3,12 @@
 
 namespace cbt
 {
+void spawn(behavior_t&& x)
+{
+	auto noop = [](behavior_t, Status) { };
+	spawn_t<decltype(noop)>::spawn(std::move(x), noop);
+}
+
 TEST_CASE("spawn")
 {
 	auto count = 0;

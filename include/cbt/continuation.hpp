@@ -25,10 +25,10 @@ struct continuation
 	continuation() = default;
 	continuation(continuation_type const& x) noexcept;
 	continuation& operator=(continuation_type const& x) noexcept;
-#if defined(NDEBUG)
+#if !defined(DEBUG)
 	continuation(continuation&& x) noexcept = default;
 	continuation& operator=(continuation&& x) noexcept = default;
-#else // !defined(NDEBUG)
+#else // defined(DEBUG)
 	continuation(continuation&& x) noexcept
 	:_ref(std::exchange(x._ref, nullptr))
 	{}
