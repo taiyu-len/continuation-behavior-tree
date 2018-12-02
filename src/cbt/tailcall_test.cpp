@@ -30,35 +30,96 @@ static intptr_t stack_usage(behavior_t &x)
 TEST_CASE("tail-calls")
 {
 	auto leaf = []{ return behavior_t([]{ return Success; }); };
+	auto leaf_2 = []{ return behavior_t([](continuation c){ c(Success); }); };
+	/*
+	 * Disable test case, dont have a good way to get it to work yet
+	 * which can get stack pointer, and avoids segfault in failing cases
+	SUBCASE("unique-function")
+	{
+		intptr_t caller = stack_address();
+		intptr_t callee = 0;
+		static unique_function<void(int)> fn;
+		fn = [](int i)
+		{
+			if (i > -1) fn(i+1);
+			// prevents tail call
+			// else callee = stack_address();
+		};
+		fn(0);
+		intptr_t diff_1 = std::abs(caller - callee);
+		fn(50);
+		intptr_t diff_2 = std::abs(caller - callee);
+		CHECK(diff_1 == diff_2);
+	}
+	*/
 	SUBCASE("inverter")
 	{
-		auto x = leaf();
-		auto y = leaf();
-		for (auto i = 0; i != 4; ++i) { x = inverter(std::move(x)); }
-		for (auto i = 0; i != 8; ++i) { y = inverter(std::move(y)); }
-		CHECK(stack_usage(x) == stack_usage(y));
+		SUBCASE("return leaf")
+		{
+			auto x = leaf();
+			auto y = leaf();
+			for (auto i = 0; i != 4; ++i) { x = inverter(std::move(x)); }
+			for (auto i = 0; i != 8; ++i) { y = inverter(std::move(y)); }
+			CHECK(stack_usage(x) == stack_usage(y));
+		}
+		SUBCASE("callback leaf")
+		{
+			auto x = leaf_2();
+			auto y = leaf_2();
+			for (auto i = 0; i != 4; ++i) { x = inverter(std::move(x)); }
+			for (auto i = 0; i != 8; ++i) { y = inverter(std::move(y)); }
+			CHECK(stack_usage(x) == stack_usage(y));
+		}
 	}
 	SUBCASE("repeater")
 	{
-		auto x = leaf();
-		auto y = leaf();
-		for (auto i = 0; i != 2; ++i) { x = repeater(std::move(x), 2); }
-		for (auto i = 0; i != 4; ++i) { y = repeater(std::move(y), 2); }
-		CHECK(stack_usage(x) == stack_usage(y));
+		SUBCASE("return leaf")
+		{
+			auto x = leaf();
+			auto y = leaf();
+			for (auto i = 0; i != 2; ++i) { x = repeater(std::move(x), 2); }
+			for (auto i = 0; i != 4; ++i) { y = repeater(std::move(y), 2); }
+			CHECK(stack_usage(x) == stack_usage(y));
+		}
+		SUBCASE("return leaf")
+		{
+			auto x = leaf_2();
+			auto y = leaf_2();
+			for (auto i = 0; i != 2; ++i) { x = repeater(std::move(x), 2); }
+			for (auto i = 0; i != 4; ++i) { y = repeater(std::move(y), 2); }
+			CHECK(stack_usage(x) == stack_usage(y));
+		}
 	}
 	SUBCASE("sequence")
 	{
-		auto x = leaf();
-		auto y = leaf();
-		for (auto i = 0; i != 4; ++i)
+		SUBCASE("return leaf")
 		{
-			x = sequence(leaf(), std::move(x), leaf());
+			auto x = leaf();
+			auto y = leaf();
+			for (auto i = 0; i != 4; ++i)
+			{
+				x = sequence(leaf(), std::move(x), leaf());
+			}
+			for (auto i = 0; i != 8; ++i)
+			{
+				y = sequence(leaf(), std::move(y), leaf());
+			}
+			CHECK(stack_usage(x) == stack_usage(y));
 		}
-		for (auto i = 0; i != 8; ++i)
+		SUBCASE("callback leaf")
 		{
-			y = sequence(leaf(), std::move(y), leaf());
+			auto x = leaf_2();
+			auto y = leaf_2();
+			for (auto i = 0; i != 4; ++i)
+			{
+				x = sequence(leaf_2(), std::move(x), leaf_2());
+			}
+			for (auto i = 0; i != 8; ++i)
+			{
+				y = sequence(leaf_2(), std::move(y), leaf_2());
+			}
+			CHECK(stack_usage(x) == stack_usage(y));
 		}
-		CHECK(stack_usage(x) == stack_usage(y));
 	}
 	SUBCASE("failure")
 	{
