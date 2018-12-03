@@ -1,4 +1,4 @@
-#include "cbt/status.hpp"
+#include "cbt/behavior/status.hpp"
 #include <iostream>
 namespace cbt
 {

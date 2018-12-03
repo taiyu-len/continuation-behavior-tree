@@ -5,7 +5,7 @@
 
 namespace cbt
 {
-struct behavior_t;
+class behavior_t;
 
 /*
  * the return type of functions used to walk up and down the behavior tree.

@@ -9,7 +9,7 @@ auto continues::up(continuation&& c, Status s) noexcept -> continues
 	continues x;
 	x._continue = std::move(c);
 	x._status   = s;
-	return std::move(x);
+	return x;
 }
 
 auto continues::down(behavior_t const& b, continuation&& c) noexcept -> continues
@@ -17,7 +17,7 @@ auto continues::down(behavior_t const& b, continuation&& c) noexcept -> continue
 	continues x;
 	x._behavior = &b;
 	x._continue = std::move(c);
-	return std::move(x);
+	return x;
 }
 
 auto continues::elsewhere() noexcept -> continues
