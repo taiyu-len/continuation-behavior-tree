@@ -64,7 +64,7 @@ spawn_t<T>::spawn_t(behavior_t&& tree, T cleanup)
 	{
 		call_cleanup<T>{}(_cleanup, std::move(_tree), s);
 		delete this;
-		return {};
+		return continues::finished();
 	};
 	_tree.run(_continue);
 }

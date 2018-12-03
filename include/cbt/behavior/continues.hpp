@@ -7,43 +7,38 @@ namespace cbt
 {
 struct behavior_t;
 
-// the return value of the functions that are used to go up, and down the
-// behavior tree.
-// used by behavior_t::run to simulate tail-call recursion due to its
-// unreliability in non-optimized code
-//
-// has 3 states.
-// - continues::down
-//   represents the state where we are going down the tree. that is, passing
-//   continuations to that behavior
-//   { behavior_t&, continuation }  =>  b.run(c)
-//
-// - continues::up
-//   represents the state where we are going up the tree. that is, calling
-//   continuations with a status
-//   { continuation, Status }  =>  c(status)
-//
-// - continues::elsewhere
-//   we passed a continuation off to some other location. so we can stop running
-//
+/*
+ * the return type of functions used to walk up and down the behavior tree.
+ * used to avoid relying on unreliable tail-call optimizations.
+ *
+ * continues::down is used to go down the behavior tree, that is passing a
+ * continuation into the next behavior.
+ *
+ * continues::up is used to go up the behavior tree, that is caling a
+ * continuation with a given status.
+ *
+ * continues::elsewhere is used to tell the run() function that it has passed a
+ * continuation to be called somewhere else.
+ */
 struct continues
 {
-	static auto up(continuation&&, Status s) -> continues;
-	static auto down(behavior_t const&, continuation&&) -> continues;
-	continues() = default;
+	static auto up(continuation&&, Status s) noexcept -> continues;
+	static auto down(behavior_t const&, continuation&&) noexcept -> continues;
+	static auto elsewhere() noexcept -> continues;
+	static auto finished() noexcept -> continues;
 
 	// run the continues until we reach an elsewhere state
-	void run();
-
+	void run() noexcept;
 private:
+	continues() = default;
 	behavior_t const* _behavior = nullptr;
 	continuation      _continue = {};
 	Status            _status   = Invalid;
 
 	enum class state_e { down, up, elsewhere };
-	auto state()   -> state_e;
-	auto go_up()   -> continues;
-	auto go_down() -> continues;
+	auto state() const noexcept  -> state_e;
+	auto go_up() noexcept  -> continues;
+	auto go_down() noexcept -> continues;
 };
 
 } // cbt

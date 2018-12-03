@@ -8,28 +8,23 @@
 namespace cbt
 {
 /*
- * a behavior_t can be constructed with any object that can be
- * - move constructed;
- * - constructable via an object with call signature void(continuation);
- *   - the continuation must be a valid function
- *   - the continuation may only be called once, after which the reference is
- *     expeceted to be invalid.
- *   - the reference must live as long as the behavior tree does
- * - constructable via an object with call signature Status()
- *   - for leaves that dont move the continuation any where
- *
+ * A behavior can be constructed with any type that satisfies one of
+ * - invocable as Status()
+ *   for behaviors that continues::up the tree (continuing with a status)
+ * - invocable as void(continuation)
+ *   for behaviors that continues::elsewhere, (continuing at a later point)
+ * - invocable as continues(continuation)
+ *   for behaviors that continues::down as well as doing the above
  *****************************************************************************/
 class behavior_t
 {
 	struct concept_t;
 	template<typename T,
-		// for nodes that pass continuations into children
 		bool = std::is_invocable_r<continues, T, continuation>::value,
-		// for nodes that pass the continuation elsewhere
 		bool = std::is_invocable_r<void, T, continuation>::value,
-		// for leaves that simply return a status
 		bool = std::is_invocable_r<Status, T>::value>
 	struct model_t;
+	template<typename T> using model = model_t<std::decay_t<T>>;
 
 public:
 	template<typename T>
@@ -40,13 +35,11 @@ public:
 	behavior_t& operator=(behavior_t&& x) noexcept = default;
 	behavior_t& operator=(behavior_t const&) = delete;
 
-	// user facing call operator
 	void run(continuation c) const noexcept;
 
 protected:
 	friend continues;
 	auto step(continuation c) const noexcept -> continues;
-	// pointer to the saved object.
 	std::unique_ptr<struct concept_t> _object;
 };
 
@@ -71,7 +64,7 @@ struct behavior_t::model_t<T, false, true, false> : concept_t
 {
 	model_t(T x) noexcept: _data(std::move(x)) {};
 	auto start(continuation c) noexcept -> continues override
-	{ _data(std::move(c)); return {}; }
+	{ _data(std::move(c)); return continues::elsewhere(); }
 
 	T _data;
 };
@@ -97,6 +90,6 @@ struct behavior_t::model_t
 
 template<typename T>
 behavior_t::behavior_t(T&& x)
-: _object(std::make_unique<model_t<T>>(std::forward<T>(x))) {}
+: _object(std::make_unique<model<T>>(std::forward<T>(x))) {}
 } // cbt
 #endif // CBT_BEHAVIOR_T_HPP

@@ -7,15 +7,12 @@ namespace cbt
 {
 
 void behavior_t::run(continuation c) const noexcept
-{
-	auto cc = step(std::move(c));
-	cc.run();
-}
+{ continues::down(*this, std::move(c)).run(); }
 
 auto behavior_t::step(continuation c) const noexcept -> continues
 {
 	assert(_object != nullptr);
-	assert(c       != nullptr);
+	assert(c);
 	return _object->start(std::move(c));
 }
 

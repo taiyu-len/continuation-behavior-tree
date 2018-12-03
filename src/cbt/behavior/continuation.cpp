@@ -26,11 +26,10 @@ continuation& continuation::operator=(continuation&& x) noexcept
 	return *this;
 }
 
-void continuation::operator()(Status s)
+void continuation::operator()(Status s) noexcept
 {
 	assert(_ref != nullptr);
-	continues c = step(s);
-	c.run();
+	continues::up(std::move(*this), s).run();
 }
 
 continuation::operator bool() const noexcept
@@ -57,7 +56,7 @@ bool operator!=(continuation const& x, continuation const& y) noexcept
 void swap(continuation& x, continuation& y) noexcept
 { std::swap(x._ref, y._ref); }
 
-auto continuation::step(Status s) -> continues
+auto continuation::step(Status s) noexcept -> continues
 {
 	assert(_ref != nullptr);
 	return (*std::exchange(_ref, nullptr))(s);
@@ -69,7 +68,7 @@ TEST_CASE("continuation")
 	auto x = continuation_type([&](Status s) -> continues
 	{
 		result = s;
-		return {};
+		return continues::finished();
 	});
 	auto c = continuation(x);
 	SUBCASE("continuation may only be called once")

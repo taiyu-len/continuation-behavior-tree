@@ -15,8 +15,10 @@ class unique_function<R(Args...)>
 {
 	using function_t = R(Args...);
 	struct concept_t;
-	template<typename T> struct model;
-	template<typename T> using model_t = model<std::decay_t<T>>;
+	template<typename T, bool = std::is_invocable_r<R, T, Args...>::value>
+	struct model_t;
+	template<typename T>
+	using model = model_t<std::decay_t<T>>;
 public:
 	unique_function() noexcept = default;
 	unique_function(std::nullptr_t) noexcept {};
@@ -26,7 +28,7 @@ public:
 
 	template<typename T>
 	unique_function(T&& x)
-	: _ptr(std::make_unique<model_t<T>>(std::forward<T>(x))) {};
+	: _ptr(std::make_unique<model<T>>(std::forward<T>(x))) {};
 
 	R operator()(Args... args) const
 	{
@@ -34,19 +36,14 @@ public:
 		return _ptr->operator()(std::forward<Args>(args) ...);
 	};
 
-	operator bool() const noexcept { return bool(_ptr); }
+	operator bool() const noexcept
+	{ return bool(_ptr); }
 	friend void swap(unique_function& x, unique_function& y)
-	{
-		std::swap(x._ptr, y._ptr);
-	}
+	{ std::swap(x._ptr, y._ptr); }
 	friend bool operator==(unique_function const& x, unique_function const& y)
-	{
-		return x._ptr == y._ptr;
-	}
+	{ return x._ptr == y._ptr; }
 	friend bool operator!=(unique_function const& x, unique_function const& y)
-	{
-		return !(x == y);
-	}
+	{ return !(x == y); }
 
 private:
 	struct concept_t
@@ -56,11 +53,17 @@ private:
 	};
 
 	template<typename T>
-	struct model : concept_t
+	struct model_t<T, true> : concept_t
 	{
-		model(T&& x): _data(std::move(x)) {};
+		model_t(T&& x): _data(std::move(x)) {};
 		R operator()(Args... args) override { return _data(args...); }
 		T _data;
+	};
+	template<typename T>
+	struct model_t<T, false>
+	{
+		static_assert(sizeof(T)<0,
+			"unique_function constructed with invalid function object");
 	};
 	std::unique_ptr<concept_t> _ptr {};
 };

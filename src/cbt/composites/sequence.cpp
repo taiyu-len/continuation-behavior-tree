@@ -1,8 +1,6 @@
 #include "cbt/composites/sequence.hpp"
 #include "cbt/behavior.hpp"
 #include "cbt/spawn.hpp"
-
-#include <cassert>
 #include <doctest/doctest.h>
 namespace cbt
 {

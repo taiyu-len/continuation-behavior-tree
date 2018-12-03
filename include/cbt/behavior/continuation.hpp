@@ -21,9 +21,9 @@ struct continuation
 	auto operator=(continuation&& x) noexcept -> continuation&;
 
 	// call operator for external continuation of user code.
-	void operator()(Status);
+	void operator()(Status) noexcept;
 
-	operator bool() const noexcept;
+	explicit operator bool() const noexcept;
 	friend bool operator==(std::nullptr_t, continuation const&) noexcept;
 	friend bool operator==(continuation const&, std::nullptr_t) noexcept;
 	friend bool operator==(continuation const&, continuation const&) noexcept;
@@ -34,7 +34,7 @@ struct continuation
 
 private:
 	friend continues;
-	auto step(Status) -> continues;
+	auto step(Status) noexcept -> continues;
 
 	continuation_type const* _ref = nullptr;
 };
