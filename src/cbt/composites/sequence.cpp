@@ -1,4 +1,7 @@
-#include "cbt/composites.hpp"
+#include "cbt/composites/sequence.hpp"
+#include "cbt/behavior.hpp"
+#include "cbt/spawn.hpp"
+
 #include <cassert>
 #include <doctest/doctest.h>
 namespace cbt
@@ -9,21 +12,24 @@ struct sequence_t
 	size_t index = 0;
 	continuation resume = {};
 	continuation_type c = {};
-	void operator()(continuation _resume)
+	auto operator()(continuation _resume) noexcept -> continues
 	{
-		assert(_resume != nullptr);
-		if (children.size() == 0) return _resume(Success);
-		index = 0;
 		resume = std::move(_resume);
-		c = [this](Status s) {
-			assert(index < children.size());
-			if (++index == children.size() || s == Failure)
-			{
-				return resume(s);
-			}
-			return children[index].run(c);
+		index = 0;
+		c = [this](Status s) -> continues
+		{
+			++index;
+			return step(s);
 		};
-		children[0].run(c);
+		return step(Success);
+	}
+	auto step(Status s) noexcept -> continues
+	{
+		if (index == children.size() || s == Failure)
+		{
+			return continues::up(std::move(resume), s);
+		}
+		return continues::down(children[index], c);
 	}
 };
 
@@ -36,15 +42,14 @@ TEST_CASE("sequence")
 {
 	int  count[3] = {0, 0, 0};
 	auto result = Invalid;
-	auto cb = continuation_type([&](Status s) { result = s; });
+	auto cb = [&](Status s) { result = s; };
 	SUBCASE("Succeed sequence all 3 times")
 	{
-		auto bt = sequence(
+		spawn(sequence(
 			[&]{ ++count[0]; return Success; },
 			[&]{ ++count[1]; return Success; },
 			[&]{ ++count[2]; return Success; }
-		);
-		bt.run(cb);
+		), cb);
 		REQUIRE(result == Success);
 		REQUIRE(count[0] == 1);
 		REQUIRE(count[1] == 1);
@@ -52,12 +57,11 @@ TEST_CASE("sequence")
 	}
 	SUBCASE("Fail in middle of sequence ")
 	{
-		auto bt = sequence(
+		spawn(sequence(
 			[&]{ ++count[0]; return Success; },
 			[&]{ ++count[1]; return Failure; },
 			[&]{ ++count[2]; return Success; }
-		);
-		bt.run(cb);
+		), cb);
 		REQUIRE(result == Failure);
 		REQUIRE(count[0] == 1);
 		REQUIRE(count[1] == 1);

@@ -3,19 +3,20 @@ CPPFLAGS:=-Iinclude
 CXX=g++
 DEBUG?=1
 ifeq ($(DEBUG), 1)
-  CXXFLAGS += -Og -ggdb -fsanitize=address,undefined
+  CXXFLAGS += -Og -g -fsanitize=address,undefined
   CXXFLAGS += -foptimize-sibling-calls
 else
-  CXXFLAGS += -O3 -flto
+  CXXFLAGS += -O3 # -flto
   CPPFLAGS += -DNDEBUG # -DDOCTEST_CONFIG_DISABLE
 endif
 
 # Test objects
-sources:=main.cpp tailcall_test.cpp
-# core objects
-sources+=behavior.cpp continuation.cpp status.cpp
+sources:=main.cpp
+sources+=$(addprefix behavior/,continuation.cpp continues.cpp status.cpp)
+sources+=$(addprefix composites/,sequence.cpp)
+sources+=$(addprefix decorators/,inverter.cpp, repeater.cpp)
+sources+=behavior.cpp spawn.cpp
 # node objects
-sources+=composites.cpp decorators.cpp spawn.cpp
 sources:=$(addprefix src/cbt/,$(sources))
 objects:=$(addsuffix .o,$(basename $(sources)))
 depends:=$(addsuffix .d,$(basename $(sources)))

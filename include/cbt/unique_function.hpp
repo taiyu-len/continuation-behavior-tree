@@ -54,6 +54,7 @@ private:
 		virtual ~concept_t() noexcept = default;
 		virtual R operator()(Args... args) = 0;
 	};
+
 	template<typename T>
 	struct model : concept_t
 	{

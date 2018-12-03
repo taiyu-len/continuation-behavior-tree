@@ -1,50 +1,37 @@
 #ifndef CBT_BEHAVIOR_HPP
 #define CBT_BEHAVIOR_HPP
 #include <memory>
-#include "cbt/status.hpp"
-#include "cbt/continuation.hpp"
+#include "cbt/behavior/status.hpp"
+#include "cbt/behavior/continuation.hpp"
+#include "cbt/behavior/continues.hpp"
 
 namespace cbt
 {
 /*
  * a behavior_t can be constructed with any object that can be
  * - move constructed;
- * - callable via x(continuation);
- *   - the continuation is a valid function
+ * - constructable via an object with call signature void(continuation);
+ *   - the continuation must be a valid function
  *   - the continuation may only be called once, after which the reference is
  *     expeceted to be invalid.
- *   - as long as the behavior tree itself exists, the reference is valid until
- *     that
- * - or callable via x() => Status
- *   - for leaves that dont pass continuation any where
- *
- *
- * three places to put continuation_type, pros and cons
- *
- * within the concept_t
- * - placed next to the behavior object, yet must access via pointer.
- * - duplicated memory for the same continuations
- * + allows arbitrary lambdas to be passed in as callbacks.
- * within the behavior_t
- * - duplicated memory for the same continuations
- * + allows arbitrary lambdas to be passed in as callbacks.
- * within the caller
- * - must be stored in the function type
- * + can reduce memory for multiple copies of the function
- * + better control over location
+ *   - the reference must live as long as the behavior tree does
+ * - constructable via an object with call signature Status()
+ *   - for leaves that dont move the continuation any where
  *
  *****************************************************************************/
 class behavior_t
 {
 	struct concept_t;
-	template<typename T, bool, bool> struct model;
+	template<typename T,
+		// for nodes that pass continuations into children
+		bool = std::is_invocable_r<continues, T, continuation>::value,
+		// for nodes that pass the continuation elsewhere
+		bool = std::is_invocable_r<void, T, continuation>::value,
+		// for leaves that simply return a status
+		bool = std::is_invocable_r<Status, T>::value>
+	struct model_t;
 
-	template<typename T> using model_t = model<std::decay_t<T>,
-		std::is_invocable_r<void, T, continuation>::value,
-		std::is_invocable_r<Status, T>::value>;
 public:
-	using ptr_t = std::unique_ptr<struct concept_t>;
-
 	template<typename T>
 	behavior_t(T&& x);
 
@@ -53,39 +40,59 @@ public:
 	behavior_t& operator=(behavior_t&& x) noexcept = default;
 	behavior_t& operator=(behavior_t const&) = delete;
 
-	// calls the stored object with the given continuation
+	// user facing call operator
 	void run(continuation c) const noexcept;
 
 protected:
+	friend continues;
+	auto step(continuation c) const noexcept -> continues;
 	// pointer to the saved object.
-	ptr_t _object;
+	std::unique_ptr<struct concept_t> _object;
 };
 
 struct behavior_t::concept_t
 {
 	virtual ~concept_t() noexcept = default;
-	virtual void start(continuation) noexcept = 0;
+	virtual auto start(continuation) noexcept -> continues = 0;
 };
 
-template<typename T>
-struct behavior_t::model<T, true, false> : concept_t
+template<typename T, bool _>
+struct behavior_t::model_t<T, true, _, false> : concept_t
 {
-	model(T x) noexcept: _data(std::move(x)) {};
-	void start(continuation c) noexcept override { _data(std::move(c)); }
+	model_t(T x) noexcept: _data(std::move(x)) {};
+	auto start(continuation c) noexcept -> continues override
+	{ return _data(std::move(c)); }
+
 	T _data;
 };
 
 template<typename T>
-struct behavior_t::model<T, false, true> : concept_t
+struct behavior_t::model_t<T, false, true, false> : concept_t
 {
-	model(T x) noexcept: _data(std::move(x)) {};
-	void start(continuation c) noexcept override { c(_data()); }
+	model_t(T x) noexcept: _data(std::move(x)) {};
+	auto start(continuation c) noexcept -> continues override
+	{ _data(std::move(c)); return {}; }
+
 	T _data;
 };
 
-template<typename T, bool x, bool y>
-struct behavior_t::model {
-	static_assert(x != y, "Ambiguous object passed into behavior_t");
+template<typename T>
+struct behavior_t::model_t<T, false, false, true> : concept_t
+{
+	model_t(T x) noexcept: _data(std::move(x)) {};
+	auto start(continuation c) noexcept -> continues override
+	{ return continues::up(std::move(c), _data()); }
+
+	T _data;
+};
+
+template<typename T, bool x, bool y, bool z>
+struct behavior_t::model_t
+{
+	static_assert(sizeof(T) < 0, "behavior constructed with invalid type");
+	static_assert(!x   , "is invocable as continues(contiuation)");
+	static_assert(!y||x, "is invocable as void(contiuation)");
+	static_assert(!z   , "is invocable as Status()");
 };
 
 template<typename T>

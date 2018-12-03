@@ -1,6 +1,7 @@
-#ifndef CBT_STATUS_HPP
-#define CBT_STATUS_HPP
+#ifndef CBT_BEHAVIOR_STATUS_HPP
+#define CBT_BEHAVIOR_STATUS_HPP
 #include <iosfwd>
+
 namespace cbt
 {
 enum Status
@@ -14,4 +15,4 @@ auto operator<<(std::ostream& os, Status s) -> std::ostream&;
 auto operator!(Status) noexcept -> Status;
 
 } // cbt
-#endif // CBT_STATUS_HPP
+#endif // CBT_BEHAVIOR_STATUS_HPP

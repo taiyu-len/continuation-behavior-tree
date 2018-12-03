@@ -1,4 +1,5 @@
 #include "cbt/behavior.hpp"
+#include "cbt/spawn.hpp"
 #include <utility>
 #include <doctest/doctest.h>
 #include <cassert>
@@ -7,41 +8,55 @@ namespace cbt
 
 void behavior_t::run(continuation c) const noexcept
 {
+	auto cc = step(std::move(c));
+	cc.run();
+}
+
+auto behavior_t::step(continuation c) const noexcept -> continues
+{
 	assert(_object != nullptr);
 	assert(c       != nullptr);
-	_object->start(std::move(c));
+	return _object->start(std::move(c));
 }
 
 TEST_CASE("behavior")
 {
 	auto count = 0;
 	auto result = Status::Invalid;
-	auto cb = continuation_type([&](Status s) { result = s; });
+	auto cb = [&](Status s) { result = s; };
 	SUBCASE("leaf model")
 	{
 		auto bt = behavior_t([&]{ ++count; return Success; });
 		REQUIRE(count == 0);
 		REQUIRE(result == Invalid);
-		bt.run(cb);
+		spawn(std::move(bt), cb);
 		REQUIRE(result == Success);
 		REQUIRE(count == 1);
 	}
 	SUBCASE("continuation model")
 	{
-		auto bt = behavior_t([&](continuation c){ ++count; c(Success); });
+		auto bt = behavior_t([&](continuation c)
+		{
+			++count;
+			return continues::up(std::move(c), Success);
+		});
 		REQUIRE(count == 0);
 		REQUIRE(result == Invalid);
-		bt.run(cb);
+		spawn(std::move(bt), cb);
 		REQUIRE(result == Success);
 		REQUIRE(count == 1);
 	}
 	SUBCASE("external continuation")
 	{
 		continuation cc;
-		auto bt = behavior_t([&](continuation c){ ++count; cc = std::move(c); });
+		auto bt = behavior_t([&](continuation c)
+		{
+			++count;
+			cc = std::move(c);
+		});
 		REQUIRE(count == 0);
 		REQUIRE(result == Invalid);
-		bt.run(cb);
+		spawn(std::move(bt), cb);
 		REQUIRE(result == Invalid);
 		REQUIRE(count == 1);
 		SUBCASE("Success")
