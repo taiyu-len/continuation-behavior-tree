@@ -18,9 +18,7 @@ override CPPFLAGS += -Iinclude -Isrc
 .DEFAULT_GOAL:=all
 
 # Generate Dependencies
-ifeq ($(MAKECMDGOALS),clean)
-else ifeq ($(MAKECMDGOALS),mostlyclean)
-else
+ifneq ($(MAKECMDGOALS:clean%=clean),clean)
 -include $(DEPENDS)
 %.d: %.c;   @$(CC)  $(CPPFLAGS) $< -MM -MT $*.o -MT $@ > $@
 %.d: %.cc;  @$(CXX) $(CPPFLAGS) $< -MM -MT $*.o -MT $@ > $@
@@ -63,11 +61,16 @@ profile-generate profile-use: % :
 	@$(MAKE) all CXXFLAGS=-f$*
 
 # static analysis
-clang-check: $(SOURCES)
-	@clang-check $^
+clang-check clang-tidy: % : $(SOURCES)
+	@$* $^
 
-mostlyclean:
-	@rm -f $(OBJECTS) $(DEPENDS) $(COMPDB)
-clean: mostlyclean
-	@rm -f compile_commands.json $(target)
-	@rm -f $(shared:%=lib%.so) $(static:%=lib%.a)
+clean-depends:
+	rm -f $(DEPENDS)
+clean-compdb:
+	rm -f $(COMPDB)
+	@rm -f compile_commands.json
+clean-objects:
+	rm -f $(OBJECTS)
+clean: clean-depends clean-compdb clean-objects
+	rm -f $(target)
+	rm -f $(shared:%=lib%.so) $(static:%=lib%.a)

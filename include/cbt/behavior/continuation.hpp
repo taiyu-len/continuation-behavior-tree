@@ -1,11 +1,11 @@
 #ifndef CBT_BEHAVIOR_CONTINUATION_HPP
 #define CBT_BEHAVIOR_CONTINUATION_HPP
-#include "cbt/unique_function.hpp"
+#include "util/unique_function.hpp"
 #include "cbt/behavior/status.hpp"
 namespace cbt
 {
 struct continues;
-using  continuation_type = unique_function<continues(Status)>;
+using  continuation_type = util::unique_function<continues(Status)>;
 
 /* A linear function reference to a continuation_type function pointer.
  * must be called exactly once, or moved into another continuation.

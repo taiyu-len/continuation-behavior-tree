@@ -5,7 +5,7 @@
 // https://github.com/arcanis/tco
 // rewritten version of the my::function from this.
 
-namespace cbt
+namespace util
 {
 template<typename T>
 class unique_function;
