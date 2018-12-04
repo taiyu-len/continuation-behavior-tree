@@ -5,13 +5,12 @@
 #include <type_traits>
 namespace cbt
 {
-template<
-	typename T,
-	bool = std::is_invocable<T, behavior_t&&, Status>::value,
-	bool = std::is_invocable<T, Status>::value>
- struct call_cleanup;
+void spawn(behavior_t&& x);
 
 template<typename T>
+void spawn(behavior_t&& x, T&& y);
+
+template<typename T, bool C1, bool C2>
 struct spawn_t
 {
 
@@ -24,51 +23,35 @@ private:
 	T _cleanup;
 	continuation_type _continue{};
 
-	spawn_t(behavior_t&& tree, T cleanup);
+	spawn_t(behavior_t&& tree, T cleanup)
+	: _tree(std::move(tree))
+	, _cleanup(std::move(cleanup))
+	, _continue([this](Status s) -> continues
+	{
+		if constexpr (C1) _cleanup(std::move(_tree), s);
+		else if constexpr (C2) _cleanup(s);
+		delete this;
+		return continues::finished();
+	})
+	{ _tree.run(_continue); }
 };
-
-void spawn(behavior_t&& x);
 
 template<typename T>
 void spawn(behavior_t&& x, T&& y)
 {
-	spawn_t<std::decay_t<T>>::spawn(std::move(x), std::forward<T>(y));
-}
-
-
-template<typename T>
-struct call_cleanup<T, true, false>
-{ void operator()(T &x, behavior_t &&b, Status s) { x(std::move(b), s); } };
-
-template<typename T>
-struct call_cleanup<T, false, true>
-{ void operator()(T &x, behavior_t &&, Status s) { x(s); } };
-
-template<typename T, bool x, bool y>
-struct call_cleanup
-{
-	static_assert(sizeof(T) < 0, "spawn called with invalid type");
-	static_assert(!x, "is invocable as void(behavior_t&&, Status)");
-	static_assert(!y, "is invocable as void(Status)");
-	static_assert(x,  "is not invocable as void(behavior_t&&, Status)");
-	static_assert(y,  "is not invocable as void(Status)");
-};
-
-template<typename T>
-spawn_t<T>::spawn_t(behavior_t&& tree, T cleanup)
-: _tree(std::move(tree)), _cleanup(cleanup)
-{
-	// passes behavior_t into cleanup function, and delete the
-	// spawn_t as final continuation
-	_continue = [this] (Status s) -> continues
+	constexpr bool a = std::is_invocable<T, behavior_t&&, Status>::value;
+	constexpr bool b = std::is_invocable<T, Status>::value;
+	constexpr bool valid = a+b == 1;
+	static_assert(valid,       "spawn called with invalid type");
+	static_assert(valid || !a, "invocable as void(behavior&&, Status)");
+	static_assert(valid || !b, "invocable as void(Status)");
+	static_assert(valid || a, "not invocable as void(behavior&&, Status)");
+	static_assert(valid || b, "not invocable as void(Status)");
+	if constexpr (valid)
 	{
-		call_cleanup<T>{}(_cleanup, std::move(_tree), s);
-		delete this;
-		return continues::finished();
-	};
-	_tree.run(_continue);
+		spawn_t<std::decay_t<T>, a, b>::spawn(std::move(x), std::forward<T>(y));
+	}
 }
-
 } // cbt
 
 #endif // CBT_SPAWN_HPP

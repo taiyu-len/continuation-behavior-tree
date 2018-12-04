@@ -18,14 +18,6 @@ namespace cbt
  *****************************************************************************/
 class behavior_t
 {
-	struct concept_t;
-	template<typename T,
-		bool = std::is_invocable_r<continues, T, continuation>::value,
-		bool = std::is_invocable_r<void, T, continuation>::value,
-		bool = std::is_invocable_r<Status, T>::value>
-	struct model_t;
-	template<typename T> using model = model_t<std::decay_t<T>>;
-
 public:
 	template<typename T>
 	behavior_t(T&& x);
@@ -40,6 +32,10 @@ public:
 protected:
 	friend continues;
 	auto step(continuation c) const noexcept -> continues;
+
+	struct concept_t;
+	template<typename T, bool, bool, bool>
+	struct model_t;
 	std::unique_ptr<struct concept_t> _object;
 };
 
@@ -49,47 +45,48 @@ struct behavior_t::concept_t
 	virtual auto start(continuation) noexcept -> continues = 0;
 };
 
-template<typename T, bool _>
-struct behavior_t::model_t<T, true, _, false> : concept_t
-{
-	model_t(T x) noexcept: _data(std::move(x)) {};
-	auto start(continuation c) noexcept -> continues override
-	{ return _data(std::move(c)); }
-
-	T _data;
-};
-
-template<typename T>
-struct behavior_t::model_t<T, false, true, false> : concept_t
-{
-	model_t(T x) noexcept: _data(std::move(x)) {};
-	auto start(continuation c) noexcept -> continues override
-	{ _data(std::move(c)); return continues::elsewhere(); }
-
-	T _data;
-};
-
-template<typename T>
-struct behavior_t::model_t<T, false, false, true> : concept_t
-{
-	model_t(T x) noexcept: _data(std::move(x)) {};
-	auto start(continuation c) noexcept -> continues override
-	{ return continues::up(std::move(c), _data()); }
-
-	T _data;
-};
-
 template<typename T, bool x, bool y, bool z>
-struct behavior_t::model_t
+struct behavior_t::model_t : concept_t
 {
-	static_assert(sizeof(T) < 0, "behavior constructed with invalid type");
-	static_assert(!x   , "is invocable as continues(contiuation)");
-	static_assert(!y||x, "is invocable as void(contiuation)");
-	static_assert(!z   , "is invocable as Status()");
+	model_t(T data) noexcept: _data(std::move(data)) {};
+	auto start(continuation c) noexcept -> continues override
+	{
+		if constexpr (x)
+		{
+			return _data(std::move(c));
+		}
+		else if constexpr (y)
+		{
+			_data(std::move(c));
+			return continues::elsewhere();
+		}
+		else if constexpr (z)
+		{
+			return continues::up(std::move(c), _data());
+		}
+	}
+
+	T _data;
 };
 
 template<typename T>
-behavior_t::behavior_t(T&& x)
-: _object(std::make_unique<model<T>>(std::forward<T>(x))) {}
+behavior_t::behavior_t(T&& object)
+{
+	constexpr bool x = std::is_invocable_r<continues, T, continuation>::value;
+	constexpr bool y = !x && std::is_invocable_r<void, T, continuation>::value;
+	constexpr bool z = std::is_invocable_r<Status, T>::value;
+	constexpr bool valid = x+y+z == 1;
+	static_assert(valid, "behavior constructed with invalid type");
+	static_assert(valid || !x, "invocable as continues(continuation)");
+	static_assert(valid || !y, "invocable as void(continuation)");
+	static_assert(valid || !z, "invocable as Status()");
+	static_assert(valid || x, "not invocable as continues(continuation)");
+	static_assert(valid || y, "not invocable as void(continuation)");
+	static_assert(valid || z, "not invocable as Status()");
+	if constexpr (valid)
+	{
+		_object = std::make_unique<model_t<T, x, y, z>>(std::forward<T>(object));
+	}
+}
 } // cbt
 #endif // CBT_BEHAVIOR_T_HPP
