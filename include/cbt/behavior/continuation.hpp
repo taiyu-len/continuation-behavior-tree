@@ -15,10 +15,11 @@ using  continuation_type = util::unique_function<continues(Status)>;
 struct continuation
 {
 	continuation() = default;
-	continuation(continuation_type const& x) noexcept;
-	continuation(continuation&& x) noexcept;
-	auto operator=(continuation_type const& x) noexcept -> continuation&;
-	auto operator=(continuation&& x) noexcept -> continuation&;
+	~continuation() noexcept;
+	continuation(continuation_type const&) noexcept;
+	continuation(continuation&&) noexcept;
+	auto operator=(continuation_type const&) noexcept -> continuation&;
+	auto operator=(continuation&&) noexcept -> continuation&;
 
 	// call operator for external continuation of user code.
 	void operator()(Status) noexcept;

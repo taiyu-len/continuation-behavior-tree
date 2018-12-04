@@ -12,6 +12,9 @@ continuation::continuation(continuation_type const& x) noexcept
 continuation::continuation(continuation&& x) noexcept
 : _ref(std::exchange(x._ref, nullptr)) {}
 
+continuation::~continuation() noexcept
+{ assert(_ref == nullptr); }
+
 auto continuation::operator=(continuation_type const& x) noexcept -> continuation&
 {
 	assert(_ref == nullptr);

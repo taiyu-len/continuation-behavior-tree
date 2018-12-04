@@ -4,38 +4,7 @@
 #include <doctest/doctest.h>
 namespace cbt
 {
-struct sequence_t
-{
-	std::vector<behavior_t> children;
-	size_t index = 0;
-	continuation resume = {};
-	continuation_type c = {};
-	auto operator()(continuation _resume) noexcept -> continues
-	{
-		resume = std::move(_resume);
-		index = 0;
-		c = [this](Status s) -> continues
-		{
-			++index;
-			return step(s);
-		};
-		return step(Success);
-	}
-	auto step(Status s) noexcept -> continues
-	{
-		if (index == children.size() || s == Failure)
-		{
-			return continues::up(std::move(resume), s);
-		}
-		return continues::down(children[index], c);
-	}
-};
-
-behavior_t sequence(std::vector<behavior_t> v)
-{
-	return sequence_t{ std::move(v) };
-}
-
+namespace {
 TEST_CASE("sequence")
 {
 	int  count[3] = {0, 0, 0};
@@ -65,5 +34,37 @@ TEST_CASE("sequence")
 		REQUIRE(count[1] == 1);
 		REQUIRE(count[2] == 0);
 	}
+}
+struct sequence_t
+{
+	std::vector<behavior_t> children;
+	size_t index = 0;
+	continuation resume = {};
+	continuation_type c = {};
+	auto operator()(continuation _resume) noexcept -> continues
+	{
+		resume = std::move(_resume);
+		index = 0;
+		c = [this](Status s) -> continues
+		{
+			++index;
+			return step(s);
+		};
+		return step(Success);
+	}
+	auto step(Status s) noexcept -> continues
+	{
+		if (index == children.size() || s == Failure)
+		{
+			return continues::up(std::move(resume), s);
+		}
+		return continues::down(children[index], c);
+	}
+};
+}
+
+behavior_t sequence(std::vector<behavior_t>&& v)
+{
+	return sequence_t{ std::move(v) };
 }
 } // cbt
