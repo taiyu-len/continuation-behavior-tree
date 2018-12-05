@@ -11,6 +11,7 @@ class behavior_t;
 //
 // second version uses default construction for init.
 template<typename T, typename F>
+// requires std::is_invocable<F, T>
 auto context(T*& out, F&&) -> behavior_t;
 
 template<typename T>

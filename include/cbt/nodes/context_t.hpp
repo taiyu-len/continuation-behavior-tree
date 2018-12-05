@@ -5,15 +5,17 @@
 namespace cbt
 {
 template<typename T, typename F>
-struct context_t
+struct _context_type
 {
 	auto operator()() noexcept -> Status;
 	static auto make(T*& out, F) -> behavior_t;
 private:
-	context_t(F&& f): _reset(std::move(f)) {}
+	_context_type(F&& f): _reset(std::move(f)) {}
 	T _value;
 	F _reset;
 };
+template<typename T, typename F>
+using _context_t = _context_type<std::decay_t<T>, std::decay_t<F>>;
 
 template<typename T, typename F>
 auto context(T*& out, F&& f) -> behavior_t
@@ -23,8 +25,7 @@ auto context(T*& out, F&& f) -> behavior_t
 	static_assert(x, "F is not invocable as void(T)");
 	if constexpr (x)
 	{
-		return context_t<std::decay_t<T>, std::decay_t<F>>
-			::make(out, std::forward<F>(f));
+		return _context_t<T, F>::make(out, std::forward<F>(f));
 	} else return behavior_t{/* never called */};
 }
 
@@ -32,11 +33,11 @@ template<typename T>
 auto context(T*& out) -> behavior_t
 {
 	auto reset = +[](T& p){ p = T{}; };
-	return context_t<std::decay_t<T>, decltype(reset)>::make(out, reset);
+	return _context_t<T, decltype(reset)>::make(out, reset);
 }
 
 template<typename T, typename F>
-auto context_t<T, F>::operator()() noexcept -> Status
+auto _context_type<T, F>::operator()() noexcept -> Status
 {
 	try { _reset(_value); }
 	catch (...) { return Failure; }
@@ -44,10 +45,10 @@ auto context_t<T, F>::operator()() noexcept -> Status
 }
 
 template<typename T, typename F>
-auto context_t<T, F>::make(T*& out, F x) -> behavior_t
+auto _context_type<T, F>::make(T*& out, F x) -> behavior_t
 {
-	auto tree = behavior_t{ context_t{std::move(x)} };
-	context_t *p = std::addressof(tree.get<context_t>());
+	auto tree = behavior_t{ _context_type{std::move(x)} };
+	auto *p = std::addressof(tree.get<_context_type>());
 	out = std::addressof(p->_value);
 	return std::move(tree);
 }
