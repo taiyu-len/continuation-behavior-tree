@@ -7,12 +7,8 @@ namespace cbt
 {
 static auto spawn_counter(continuation &c, int init, int count) -> int&
 {
-	// pointer to state stored in tree
-	int *state;
 	// create context node that initializes type with init value
-	auto context_node = context(state, [init](int &i){ i = init; });
-	// create leaf node that increments shared state, and moves the
-	// continuation to the outside.
+	auto [node, state] = context<int>([init](int &i){ i = init; });
 	auto inc = [&state = *state, &c](continuation _c)
 	{
 		state++;
@@ -20,7 +16,7 @@ static auto spawn_counter(continuation &c, int init, int count) -> int&
 	};
 	// create a sequence that initializes the state, and calls increment a
 	// number of times
-	spawn(sequence(std::move(context_node), repeater(inc, count)));
+	spawn(sequence(std::move(node), repeater(inc, count)));
 	return *state;
 }
 

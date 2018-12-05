@@ -62,4 +62,7 @@ TODO:
     - [ ] conbtree?
           library built on contree for continuation based behavior trees
 8. [ ] write a toy server or something similar to test it with a full program.
+9. [ ] rewrite continuation as a `void*`, `continues(*)(void*, Status)` pair
+       and have nodes construct it accordingly, avoiding the need for a
+       `unique_function`
 

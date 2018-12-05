@@ -1,21 +1,24 @@
 #ifndef CBT_NODES_CONTEXT_HPP
 #define CBT_NODES_CONTEXT_HPP
+#include <utility>
 
 namespace cbt
 {
 class behavior_t;
+/*
+ * return a behavoir node storing an object of type T, with a function that
+ * initializes it when the node is called,
+ * and a pointer the internal object.
+ * [tree, pointer]
+ */
+template<typename T>
+using context_result = std::pair<behavior_t, T*>;
 
-// constructs a behavior node storing an object of type T, and function
-// of type Init that initialise T on start, and an out param for T*
-// to return the address of the object to be used in other nodes.
-//
-// second version uses default construction for init.
 template<typename T, typename F>
-// requires std::is_invocable<F, T>
-auto context(T*& out, F&&) -> behavior_t;
+auto context(F&&) -> context_result<T>;
 
 template<typename T>
-auto context(T*& out) -> behavior_t;
+auto context() -> context_result<T>;
 } // cbt
 #include "cbt/nodes/context_t.hpp"
 #endif // CBT_NODES_CONTEXT_HPP

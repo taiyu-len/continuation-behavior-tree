@@ -31,7 +31,7 @@ public:
 
 	// get _data type from stored object.
 	template<typename T>
-	auto get() -> T&;
+	auto get() const -> T&;
 private:
 	friend continues;
 	auto step(continuation c) const noexcept -> continues;

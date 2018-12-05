@@ -65,7 +65,7 @@ behavior_t::behavior_t(T&& object)
 }
 
 template<typename T>
-auto behavior_t::get() -> T&
+auto behavior_t::get() const -> T&
 {
 	auto *ptr = static_cast<model_base<std::decay_t<T>>*>(_object.get());
 	return ptr->_data;
