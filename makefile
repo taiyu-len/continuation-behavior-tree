@@ -55,12 +55,13 @@ $(static:%=lib%.a) : lib%.a : $$*;
 $(static): $$(filter src/$$@/%,$(OBJECTS))
 	$(AR) $(ARFLAGS) lib$@.a $?
 
-# Profiling support.
+strip: $(target)
+	@strip -s $^
+
 profile-generate profile-use: % :
 	@$(MAKE) clean
 	@$(MAKE) all CXXFLAGS=-f$*
 
-# static analysis
 clang-check clang-tidy: % : $(SOURCES)
 	@$* $^
 

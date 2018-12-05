@@ -4,7 +4,7 @@
 namespace cbt
 {
 void spawn(behavior_t&& x)
-{ spawn(std::move(x), [](Status){}); }
+{ spawn(std::move(x), +[](Status){}); }
 
 TEST_CASE("spawn")
 {

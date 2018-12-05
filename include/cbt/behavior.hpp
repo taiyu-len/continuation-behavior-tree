@@ -29,11 +29,18 @@ public:
 
 	void run(continuation c) const noexcept;
 
-protected:
+	// get _data type from stored object.
+	template<typename T>
+	auto get() -> T&;
+private:
 	friend continues;
 	auto step(continuation c) const noexcept -> continues;
 
 	struct concept_t;
+
+	template<typename T>
+	struct model_base;
+
 	template<typename T, bool, bool, bool>
 	struct model_t;
 	std::unique_ptr<struct concept_t> _object;
@@ -45,28 +52,34 @@ struct behavior_t::concept_t
 	virtual auto start(continuation) noexcept -> continues = 0;
 };
 
-template<typename T, bool x, bool y, bool z>
-struct behavior_t::model_t : concept_t
+template<typename T>
+struct behavior_t::model_base : concept_t
 {
-	model_t(T data) noexcept: _data(std::move(data)) {};
+	model_base(T&& data): _data(std::move(data)) {}
+	T _data;
+};
+
+template<typename T, bool x, bool y, bool z>
+struct behavior_t::model_t : model_base<T>
+{
+	model_t(T data): model_base<T>{std::move(data)} {};
 	auto start(continuation c) noexcept -> continues override
 	{
 		if constexpr (x)
 		{
-			return _data(std::move(c));
+			return this->_data(std::move(c));
 		}
 		else if constexpr (y)
 		{
-			_data(std::move(c));
+			this->_data(std::move(c));
 			return continues::elsewhere();
 		}
 		else if constexpr (z)
 		{
-			return continues::up(std::move(c), _data());
+			return continues::up(std::move(c), this->_data());
 		}
 	}
 
-	T _data;
 };
 
 template<typename T>
@@ -85,8 +98,16 @@ behavior_t::behavior_t(T&& object)
 	static_assert(valid || z, "not invocable as Status()");
 	if constexpr (valid)
 	{
-		_object = std::make_unique<model_t<T, x, y, z>>(std::forward<T>(object));
+		_object = std::make_unique<model_t<std::decay_t<T>, x, y, z>>(
+			std::forward<T>(object));
 	}
+}
+
+template<typename T>
+auto behavior_t::get() -> T&
+{
+	auto *ptr = static_cast<model_base<std::decay_t<T>>*>(_object.get());
+	return ptr->_data;
 }
 } // cbt
 #endif // CBT_BEHAVIOR_T_HPP
