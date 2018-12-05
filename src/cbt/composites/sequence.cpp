@@ -40,17 +40,16 @@ struct sequence_t
 	std::vector<behavior_t> children;
 	size_t index = 0;
 	continuation resume = {};
-	continuation_type c = {};
 	auto operator()(continuation _resume) noexcept -> continues
 	{
 		resume = std::move(_resume);
 		index = 0;
-		c = [this](Status s) -> continues
-		{
-			++index;
-			return step(s);
-		};
 		return step(Success);
+	}
+	auto next(Status s) noexcept -> continues
+	{
+		++index;
+		return step(s);
 	}
 	auto step(Status s) noexcept -> continues
 	{
@@ -58,7 +57,9 @@ struct sequence_t
 		{
 			return continues::up(std::move(resume), s);
 		}
-		return continues::down(children[index], c);
+		return continues::down(
+			children[index],
+			continuation::mem_fn<&sequence_t::next>(*this));
 	}
 };
 }

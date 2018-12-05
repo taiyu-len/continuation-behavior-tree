@@ -15,19 +15,20 @@ struct _spawn_t
 private:
 	behavior_t _tree;
 	T _cleanup;
-	continuation_type _continue{};
-
-	_spawn_t(behavior_t&& tree, T cleanup)
-	: _tree(std::move(tree))
-	, _cleanup(std::move(cleanup))
-	, _continue([this](Status s) -> continues
+	auto finish(Status s) noexcept -> continues
 	{
 		if constexpr (C1) _cleanup(std::move(_tree), s);
 		else if constexpr (C2) _cleanup(s);
 		delete this;
 		return continues::finished();
-	})
-	{ _tree.run(_continue); }
+	}
+
+	_spawn_t(behavior_t&& tree, T cleanup)
+	: _tree(std::move(tree))
+	, _cleanup(std::move(cleanup))
+	{
+		_tree.run(continuation::mem_fn<&_spawn_t::finish>(*this));
+	}
 };
 
 template<typename T>

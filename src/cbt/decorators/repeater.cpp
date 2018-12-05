@@ -43,17 +43,16 @@ struct repeater_t
 	size_t limit;
 	size_t count = 0;
 	continuation resume{};
-	continuation_type c{};
 	auto operator()(continuation _resume) noexcept -> continues
 	{
 		resume = std::move(_resume);
 		count = 0;
-		c = [this](Status s) -> continues
-		{
-			++count;
-			return step(s);
-		};
 		return step(Success);
+	}
+	auto next(Status s) noexcept -> continues
+	{
+		++count;
+		return step(s);
 	}
 	auto step(Status s) noexcept -> continues
 	{
@@ -61,7 +60,9 @@ struct repeater_t
 		{
 			return continues::up(std::move(resume), s);
 		}
-		return continues::down(child, c);
+		return continues::down(
+			child,
+			continuation::mem_fn<&repeater_t::next>(*this));
 	}
 };
 }

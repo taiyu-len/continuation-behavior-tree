@@ -25,15 +25,16 @@ struct inverter_t
 {
 	behavior_t   child;
 	continuation resume{};
-	continuation_type c{};
 	auto operator()(continuation _resume) noexcept -> continues
 	{
 		resume = std::move(_resume);
-		c = [this](Status s) -> continues
-		{
-			return continues::up(std::move(resume), !s);
-		};
-		return continues::down(child, c);
+		return continues::down(
+			child,
+			continuation::mem_fn<&inverter_t::next>(*this));
+	}
+	auto next(Status s) noexcept -> continues
+	{
+		return continues::up(std::move(resume), !s);
 	}
 };
 }

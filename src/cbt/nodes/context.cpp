@@ -1,4 +1,5 @@
 #include "cbt/nodes/context.hpp"
+#include "cbt/behavior.hpp"
 #include "cbt/composites/sequence.hpp"
 #include "cbt/decorators/repeater.hpp"
 #include "cbt/spawn.hpp"

@@ -6,96 +6,132 @@
 
 namespace cbt
 {
-continuation::continuation(continuation_type const& x) noexcept
-: _ref(&x) {}
+namespace {
+struct continue_test {
+	Status& result;
+	auto fn(Status s) -> continues {
+		result = s;
+		return continues::finished();
+	}
+};
+}
+TEST_CASE("continuation")
+{
+	static auto result = Invalid;
+	auto ct = continue_test{result};
+	auto f  = [](Status s) -> continues {
+		result = s;
+		return continues::finished();
+	};
+
+	auto cmf = continuation::mem_fn<&continue_test::fn>(ct);
+	auto cf  = continuation(f);
+
+	SUBCASE("continuation may only be called once")
+	{
+		auto x = [&](continuation& c)
+		{
+			c(Success);
+			REQUIRE(result == Success);
+			REQUIRE(c == nullptr);
+		};
+		x(cmf);
+		x(cf);
+	}
+	SUBCASE("continuation is empty after move")
+	{
+		auto x = [&](continuation& c)
+		{
+			auto c2 = std::move(c);
+			REQUIRE(c == nullptr);
+			c2(Failure);
+			REQUIRE(result == Failure);
+			REQUIRE(c2 == nullptr);
+		};
+		x(cmf);
+		x(cf);
+	}
+	SUBCASE("continuation may be recreated from original")
+	{
+		cf(Success);
+		cmf(Success);
+		REQUIRE(cf == nullptr);
+		REQUIRE(cmf == nullptr);
+		cf = f;
+		REQUIRE(cf != nullptr);
+		cf(Success);
+		REQUIRE(cf == nullptr);
+	}
+}
 
 continuation::continuation(continuation&& x) noexcept
-: _ref(std::exchange(x._ref, nullptr)) {}
-
-continuation::~continuation() noexcept
-{ assert(_ref == nullptr); }
-
-auto continuation::operator=(continuation_type const& x) noexcept -> continuation&
-{
-	assert(_ref == nullptr);
-	_ref = &x;
-	return *this;
-}
+: _func(std::exchange(x._func, nullptr))
+, _that(std::exchange(x._that, nullptr))
+{}
 
 continuation& continuation::operator=(continuation&& x) noexcept
 {
-	assert(_ref == nullptr);
-	_ref = std::exchange(x._ref, nullptr);
+	assert(_func == nullptr && _that == nullptr);
+	_func = std::exchange(x._func, nullptr);
+	_that = std::exchange(x._that, nullptr);
 	return *this;
 }
 
+continuation::continuation(func1_t f) noexcept
+: _func1{f}
+, _that{nullptr}
+{}
+
+auto continuation::operator=(func1_t f) noexcept -> continuation&
+{ return *this = continuation{f}; }
+
+continuation::~continuation() noexcept
+{ assert(_func == nullptr && _that == nullptr); }
+
 void continuation::operator()(Status s) noexcept
 {
-	assert(_ref != nullptr);
 	continues::up(std::move(*this), s).run();
 }
 
 continuation::operator bool() const noexcept
-{ return _ref != nullptr; }
+{ return _func != nullptr; }
 
 bool operator==(std::nullptr_t, continuation const& x) noexcept
-{ return x._ref == nullptr; }
+{ return x._func == nullptr; }
 
 bool operator==(continuation const& x, std::nullptr_t) noexcept
-{ return x._ref == nullptr; }
+{ return x._func == nullptr; }
 
 bool operator==(continuation const& x, continuation const& y) noexcept
-{ return x._ref == y._ref; }
+{ return x._func == y._func && x._that == y._that; }
 
 bool operator!=(std::nullptr_t, continuation const& x) noexcept
-{ return x._ref != nullptr; }
+{ return !(nullptr == x); }
 
 bool operator!=(continuation const& x, std::nullptr_t) noexcept
-{ return x._ref != nullptr; }
+{ return !(x == nullptr); }
 
 bool operator!=(continuation const& x, continuation const& y) noexcept
-{ return x._ref != y._ref; }
+{ return !(x == y); }
 
 void swap(continuation& x, continuation& y) noexcept
-{ std::swap(x._ref, y._ref); }
+{
+	std::swap(x._func, y._func);
+	std::swap(x._that, y._that);
+}
 
 auto continuation::step(Status s) noexcept -> continues
 {
-	assert(_ref != nullptr);
-	return (*std::exchange(_ref, nullptr))(s);
-}
-
-TEST_CASE("continuation")
-{
-	auto result = Invalid;
-	auto x = continuation_type([&](Status s) -> continues
+	if (_that == nullptr)
 	{
-		result = s;
-		return continues::finished();
-	});
-	auto c = continuation(x);
-	SUBCASE("continuation may only be called once")
-	{
-		c(Success);
-		REQUIRE(result == Success);
-		REQUIRE(c == nullptr);
+		assert(_func1 != nullptr);
+		return std::exchange(_func1, nullptr)(s);
 	}
-	SUBCASE("continuation is empty after move")
+	else
 	{
-		auto c2 = std::move(c);
-		REQUIRE(c == nullptr);
-		c2(Failure);
-		REQUIRE(result == Failure);
-		REQUIRE(c2 == nullptr);
-	}
-	SUBCASE("continuation may be recreated from original")
-	{
-		c(Success);
-		REQUIRE(c == nullptr);
-		c = x;
-		REQUIRE(c != nullptr);
-		c(Success);
-		REQUIRE(c == nullptr);
+		assert(_func != nullptr);
+		return std::exchange(_func, nullptr)(
+			std::exchange(_that, nullptr), s);
 	}
 }
 
