@@ -2,6 +2,8 @@
 #include "cbt/behavior.hpp"
 #include "cbt/spawn.hpp"
 #include <doctest/doctest.h>
+#include <memory>
+#include <algorithm>
 namespace cbt
 {
 namespace {
@@ -37,9 +39,11 @@ TEST_CASE("sequence")
 }
 struct sequence_t
 {
-	std::vector<behavior_t> children;
-	size_t index = 0;
+	std::unique_ptr<behavior_t[]> children;
+	std::uint8_t size;
+	std::uint8_t index = 0;
 	continuation resume = {};
+
 	auto operator()(continuation _resume) noexcept -> continues
 	{
 		resume = std::move(_resume);
@@ -53,7 +57,7 @@ struct sequence_t
 	}
 	auto step(Status s) noexcept -> continues
 	{
-		if (index == children.size() || s == Failure)
+		if (index == size || s == Failure)
 		{
 			return continues::up(std::move(resume), s);
 		}
@@ -64,8 +68,10 @@ struct sequence_t
 };
 }
 
-behavior_t sequence(std::vector<behavior_t>&& v)
+auto sequence(behavior_t *data, std::uint8_t size) -> behavior_t
 {
-	return sequence_t{ std::move(v) };
+	auto p = std::make_unique<behavior_t[]>(size);
+	std::move(data, data+size, p.get());
+	return sequence_t{std::move(p), size};
 }
 } // cbt

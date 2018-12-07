@@ -22,6 +22,7 @@ public:
 	template<typename T>
 	behavior_t(T&& x);
 
+	behavior_t() noexcept = default;
 	behavior_t(behavior_t &&) noexcept = default;
 	behavior_t(behavior_t const&) = delete;
 	behavior_t& operator=(behavior_t&& x) noexcept = default;
