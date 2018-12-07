@@ -1,8 +1,7 @@
 #include "cbt/composites/sequence.hpp"
-#include "cbt/behavior.hpp"
+#include "cbt/composites/select.hpp"
 #include "cbt/spawn.hpp"
 #include <doctest/doctest.h>
-#include <memory>
 #include <algorithm>
 namespace cbt
 {
@@ -24,6 +23,30 @@ TEST_CASE("sequence")
 		REQUIRE(count[1] == 1);
 		REQUIRE(count[2] == 1);
 	}
+	SUBCASE("Select first success")
+	{
+		spawn(select(
+			[&]{ ++count[0]; return Failure; },
+			[&]{ ++count[1]; return Success; },
+			[&]{ ++count[2]; return Failure; }
+		), cb);
+		REQUIRE(count[0] == 1);
+		REQUIRE(count[1] == 1);
+		REQUIRE(count[2] == 0);
+		REQUIRE(result == Success);
+	}
+	SUBCASE("Select all fail")
+	{
+		spawn(select(
+			[&]{ ++count[0]; return Failure; },
+			[&]{ ++count[1]; return Failure; },
+			[&]{ ++count[2]; return Failure; }
+		), cb);
+		REQUIRE(result == Failure);
+		REQUIRE(count[0] == 1);
+		REQUIRE(count[1] == 1);
+		REQUIRE(count[2] == 1);
+	}
 	SUBCASE("Fail in middle of sequence ")
 	{
 		spawn(sequence(
@@ -37,7 +60,9 @@ TEST_CASE("sequence")
 		REQUIRE(count[2] == 0);
 	}
 }
-struct sequence_t
+
+template<Status S>
+struct sequence_while
 {
 	std::unique_ptr<behavior_t[]> children;
 	std::uint8_t size;
@@ -48,7 +73,7 @@ struct sequence_t
 	{
 		resume = std::move(_resume);
 		index = 0;
-		return step(Success);
+		return step(S);
 	}
 	auto next(Status s) noexcept -> continues
 	{
@@ -57,18 +82,27 @@ struct sequence_t
 	}
 	auto step(Status s) noexcept -> continues
 	{
-		if (index == size || s == Failure)
+		if (index == size || s == !S)
 		{
 			return continues::up(std::move(resume), s);
 		}
 		return continues::down(
 			children[index],
-			continuation::mem_fn<&sequence_t::next>(*this));
+			continuation::mem_fn<&sequence_while::next>(*this));
 	}
 };
+using sequence_t = sequence_while<Success>;
+using select_t = sequence_while<Failure>;
+
 }
 
-auto sequence(behavior_t *data, std::uint8_t size) -> behavior_t
+auto select_impl(behavior_t *data, std::uint8_t size) -> behavior_t
+{
+	auto p = std::make_unique<behavior_t[]>(size);
+	std::move(data, data+size, p.get());
+	return select_t{std::move(p), size};
+}
+auto sequence_impl(behavior_t *data, std::uint8_t size) -> behavior_t
 {
 	auto p = std::make_unique<behavior_t[]>(size);
 	std::move(data, data+size, p.get());
