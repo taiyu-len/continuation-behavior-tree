@@ -1,4 +1,4 @@
-#include "cbt/spawn.hpp"
+#include "cbt/nodes/spawn.hpp"
 #include <doctest/doctest.h>
 
 namespace cbt

@@ -1,5 +1,5 @@
-#ifndef CBT_SELECT_HPP
-#define CBT_SELECT_HPP
+#ifndef CBT_NODES_SELECT_HPP
+#define CBT_NODES_SELECT_HPP
 #include "cbt/behavior.hpp"
 #include <array>
 namespace cbt
@@ -14,4 +14,4 @@ auto select(T&&... xs) -> behavior_t
 	return select_impl(a.data(), static_cast<std::uint8_t>(a.size()));
 }
 } // cbt
-#endif // CBT_SELECT_HPP
+#endif // CBT_NODES_SELECT_HPP

@@ -1,5 +1,5 @@
-#ifndef CBT_SPAWN_T_HPP
-#define CBT_SPAWN_T_HPP
+#ifndef CBT_NODES_SPAWN_T_HPP
+#define CBT_NODES_SPAWN_T_HPP
 #include "cbt/behavior.hpp"
 #include <utility>
 #include <type_traits>
@@ -48,4 +48,4 @@ void spawn(behavior_t&& x, T&& y)
 	}
 }
 } // cbt
-#endif // CBT_SPAWN_T_HPP
+#endif // CBT_NODES_SPAWN_T_HPP

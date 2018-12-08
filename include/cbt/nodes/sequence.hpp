@@ -1,5 +1,5 @@
-#ifndef CBT_SEQUENCE_HPP
-#define CBT_SEQUENCE_HPP
+#ifndef CBT_NODES_SEQUENCE_HPP
+#define CBT_NODES_SEQUENCE_HPP
 #include "cbt/behavior.hpp"
 #include <array>
 namespace cbt
@@ -14,4 +14,4 @@ auto sequence(T&&... xs) -> behavior_t
 	return sequence_impl(a.data(), static_cast<std::uint8_t>(a.size()));
 }
 } // cbt
-#endif // CBT_SEQUENCE_HPP
+#endif // CBT_NODES_SEQUENCE_HPP

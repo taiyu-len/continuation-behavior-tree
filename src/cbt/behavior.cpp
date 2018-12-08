@@ -1,5 +1,5 @@
 #include "cbt/behavior.hpp"
-#include "cbt/spawn.hpp"
+#include "cbt/nodes/spawn.hpp"
 #include <utility>
 #include <doctest/doctest.h>
 #include <cassert>

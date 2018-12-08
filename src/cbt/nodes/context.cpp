@@ -1,8 +1,8 @@
-#include "cbt/nodes/context.hpp"
 #include "cbt/behavior.hpp"
-#include "cbt/composites/sequence.hpp"
-#include "cbt/decorators/repeater.hpp"
-#include "cbt/spawn.hpp"
+#include "cbt/nodes/context.hpp"
+#include "cbt/nodes/sequence.hpp"
+#include "cbt/nodes/repeat.hpp"
+#include "cbt/nodes/spawn.hpp"
 #include <doctest/doctest.h>
 namespace cbt
 {
@@ -17,7 +17,7 @@ static auto spawn_counter(continuation &c, int init, int count) -> int&
 	};
 	// create a sequence that initializes the state, and calls increment a
 	// number of times
-	spawn(sequence(std::move(node), repeater(inc, count)));
+	spawn(sequence(std::move(node), repeat_n(inc, count)));
 	return *state;
 }
 

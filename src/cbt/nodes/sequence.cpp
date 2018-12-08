@@ -1,6 +1,6 @@
-#include "cbt/composites/sequence.hpp"
-#include "cbt/composites/select.hpp"
-#include "cbt/spawn.hpp"
+#include "cbt/nodes/sequence.hpp"
+#include "cbt/nodes/select.hpp"
+#include "cbt/nodes/spawn.hpp"
 #include <doctest/doctest.h>
 #include <algorithm>
 namespace cbt
