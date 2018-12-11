@@ -48,7 +48,7 @@ TEST_CASE("repeat")
 template<Status initial, Status exit_on>
 struct repeater_t
 {
-	behavior_t     child;
+	behavior     child;
 	continuation resume{};
 
 	auto operator()(continuation _resume) noexcept -> continues
@@ -71,7 +71,7 @@ struct repeater_t
 template<Status initial, Status exit_on>
 struct repeater_n_t
 {
-	behavior_t child;
+	behavior child;
 	size_t     limit;
 	size_t     count = 0;
 	continuation resume{};
@@ -109,22 +109,22 @@ using until_t    = repeater_t<Failure, Success>;
 using forever_t  = repeater_t<Success, Invalid>;
 }
 
-auto repeat_n(behavior_t&& x, size_t limit) -> behavior_t
+auto repeat_n(behavior&& x, size_t limit) -> behavior
 { return repeat_n_t{ std::move(x), limit }; }
 
-auto repeat(behavior_t&& x) -> behavior_t
+auto repeat(behavior&& x) -> behavior
 { return repeat_t{ std::move(x) }; }
 
-auto until_n(behavior_t&& x, size_t limit) -> behavior_t
+auto until_n(behavior&& x, size_t limit) -> behavior
 { return until_n_t{ std::move(x), limit }; }
 
-auto until(behavior_t&& x) -> behavior_t
+auto until(behavior&& x) -> behavior
 { return until_t{ std::move(x) }; }
 
-auto for_n(behavior_t&& x, size_t limit) -> behavior_t
+auto for_n(behavior&& x, size_t limit) -> behavior
 { return for_n_t{ std::move(x), limit }; }
 
-auto forever(behavior_t&& x) -> behavior_t
+auto forever(behavior&& x) -> behavior
 { return forever_t{ std::move(x) }; }
 
 } // cbt

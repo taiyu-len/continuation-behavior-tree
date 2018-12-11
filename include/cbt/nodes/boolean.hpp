@@ -3,10 +3,10 @@
 /* Behavior nodes modeling boolean operations */
 namespace cbt
 {
-class behavior_t;
-auto negate(behavior_t&&) -> behavior_t;
-auto implies(behavior_t&&, behavior_t&&) -> behavior_t;
-auto equals(behavior_t&&, behavior_t&&) -> behavior_t;
-auto differs(behavior_t&&, behavior_t&&) -> behavior_t;
+class behavior;
+auto negate(behavior&&) -> behavior;
+auto implies(behavior&&, behavior&&) -> behavior;
+auto equals(behavior&&, behavior&&) -> behavior;
+auto differs(behavior&&, behavior&&) -> behavior;
 } // cbt
 #endif // CBT_NODES_BOOLEAN_HPP

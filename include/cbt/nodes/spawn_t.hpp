@@ -8,12 +8,12 @@ namespace cbt
 template<typename T, bool C1, bool C2>
 struct _spawn_t
 {
-	static void spawn(behavior_t&& x, T y)
+	static void spawn(behavior&& x, T y)
 	{
 		(void) new _spawn_t(std::move(x), std::move(y));
 	}
 private:
-	behavior_t _tree;
+	behavior _tree;
 	T _cleanup;
 	auto finish(Status s) noexcept -> continues
 	{
@@ -23,7 +23,7 @@ private:
 		return continues::finished();
 	}
 
-	_spawn_t(behavior_t&& tree, T cleanup)
+	_spawn_t(behavior&& tree, T cleanup)
 	: _tree(std::move(tree))
 	, _cleanup(std::move(cleanup))
 	{
@@ -32,9 +32,9 @@ private:
 };
 
 template<typename T>
-void spawn(behavior_t&& x, T&& y)
+void spawn(behavior&& x, T&& y)
 {
-	constexpr bool a = std::is_invocable<T, behavior_t&&, Status>::value;
+	constexpr bool a = std::is_invocable<T, behavior&&, Status>::value;
 	constexpr bool b = std::is_invocable<T, Status>::value;
 	constexpr bool valid = a+b == 1;
 	static_assert(valid,       "spawn called with invalid type");

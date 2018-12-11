@@ -5,7 +5,7 @@
 
 namespace cbt
 {
-class behavior_t;
+class behavior;
 
 /*
  * the return type of functions used to walk up and down the behavior tree.
@@ -23,7 +23,7 @@ class behavior_t;
 struct continues
 {
 	static auto up(continuation&&, Status s) noexcept -> continues;
-	static auto down(behavior_t const&, continuation&&) noexcept -> continues;
+	static auto down(behavior const&, continuation&&) noexcept -> continues;
 	static auto elsewhere() noexcept -> continues;
 	static auto finished() noexcept -> continues;
 
@@ -31,7 +31,7 @@ struct continues
 	void run() noexcept;
 private:
 	continues() = default;
-	behavior_t const* _behavior = nullptr;
+	behavior const* _behavior = nullptr;
 	continuation      _continue = {};
 	Status            _status   = Invalid;
 

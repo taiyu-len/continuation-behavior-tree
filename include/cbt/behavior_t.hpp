@@ -7,21 +7,21 @@
 
 namespace cbt
 {
-struct behavior_t::concept_t
+struct behavior::concept_t
 {
 	virtual ~concept_t() noexcept = default;
 	virtual auto start(continuation) noexcept -> continues = 0;
 };
 
 template<typename T>
-struct behavior_t::model_base : concept_t
+struct behavior::model_base : concept_t
 {
 	model_base(T&& data): _data(std::move(data)) {}
 	T _data;
 };
 
 template<typename T, bool x, bool y, bool z>
-struct behavior_t::model_t : model_base<T>
+struct behavior::model_t : model_base<T>
 {
 	model_t(T data): model_base<T>{std::move(data)} {};
 	auto start(continuation c) noexcept -> continues override
@@ -44,7 +44,7 @@ struct behavior_t::model_t : model_base<T>
 };
 
 template<typename T>
-behavior_t::behavior_t(T&& object)
+behavior::behavior(T&& object)
 {
 	constexpr bool x = std::is_invocable_r<continues, T, continuation>::value;
 	constexpr bool y = !x && std::is_invocable_r<void, T, continuation>::value;
@@ -65,7 +65,7 @@ behavior_t::behavior_t(T&& object)
 }
 
 template<typename T>
-auto behavior_t::get() const -> T&
+auto behavior::get() const -> T&
 {
 	auto *ptr = static_cast<model_base<std::decay_t<T>>*>(_object.get());
 	return ptr->_data;

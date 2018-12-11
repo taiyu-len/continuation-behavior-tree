@@ -6,10 +6,10 @@
 namespace cbt
 {
 
-void behavior_t::run(continuation c) const noexcept
+void behavior::run(continuation c) const noexcept
 { continues::down(*this, std::move(c)).run(); }
 
-auto behavior_t::step(continuation c) const noexcept -> continues
+auto behavior::step(continuation c) const noexcept -> continues
 {
 	assert(_object != nullptr);
 	assert(c);
@@ -23,7 +23,7 @@ TEST_CASE("behavior")
 	auto cb = [&](Status s) { result = s; };
 	SUBCASE("leaf model")
 	{
-		auto bt = behavior_t([&]{ ++count; return Success; });
+		auto bt = behavior([&]{ ++count; return Success; });
 		REQUIRE(count == 0);
 		REQUIRE(result == Invalid);
 		spawn(std::move(bt), cb);
@@ -32,7 +32,7 @@ TEST_CASE("behavior")
 	}
 	SUBCASE("continuation model")
 	{
-		auto bt = behavior_t([&](continuation c)
+		auto bt = behavior([&](continuation c)
 		{
 			++count;
 			return continues::up(std::move(c), Success);
@@ -46,7 +46,7 @@ TEST_CASE("behavior")
 	SUBCASE("external continuation")
 	{
 		continuation cc;
-		auto bt = behavior_t([&](continuation c)
+		auto bt = behavior([&](continuation c)
 		{
 			++count;
 			cc = std::move(c);

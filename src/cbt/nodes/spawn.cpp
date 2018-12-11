@@ -3,14 +3,14 @@
 
 namespace cbt
 {
-void spawn(behavior_t&& x)
+void spawn(behavior&& x)
 { spawn(std::move(x), +[](Status){}); }
 
 TEST_CASE("spawn")
 {
 	auto count = 0;
 	auto result = Status::Invalid;
-	auto cb = [&](behavior_t, Status s)
+	auto cb = [&](behavior, Status s)
 	{
 		++count;
 		result = s;
@@ -37,7 +37,7 @@ TEST_CASE("spawn")
 		struct respawn {
 			int    &count;
 			Status &result;
-			void operator ()(behavior_t b, Status s) {
+			void operator ()(behavior b, Status s) {
 				if (++count == 5 || s == Failure)
 					result = s;
 				else return spawn(std::move(b), *this);

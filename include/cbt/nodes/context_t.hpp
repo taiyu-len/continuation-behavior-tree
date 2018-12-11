@@ -28,7 +28,7 @@ auto context_type<T, F>::operator()() noexcept -> Status
 template<typename T, typename F>
 auto context_type<T, F>::make(F x) -> context_result<T>
 {
-	auto tree = behavior_t{ context_type{std::move(x)} };
+	auto tree = behavior{ context_type{std::move(x)} };
 	auto *p = std::addressof(tree.get<context_type>()._value);
 	return {
 		std::move(tree),

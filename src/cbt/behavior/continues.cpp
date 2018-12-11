@@ -12,7 +12,7 @@ auto continues::up(continuation&& c, Status s) noexcept -> continues
 	return x;
 }
 
-auto continues::down(behavior_t const& b, continuation&& c) noexcept -> continues
+auto continues::down(behavior const& b, continuation&& c) noexcept -> continues
 {
 	continues x;
 	x._behavior = &b;

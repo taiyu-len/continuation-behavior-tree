@@ -9,7 +9,7 @@ TEST_CASE("boolean-nodes")
 {
 	auto result = Invalid;
 	auto cb    = [&](Status s) { result = s; };
-	auto test = [&](behavior_t &&b, Status s) {
+	auto test = [&](behavior &&b, Status s) {
 		spawn(std::move(b), cb);
 		REQUIRE(result == s);
 	};
@@ -50,7 +50,7 @@ TEST_CASE("boolean-nodes")
 
 struct negate_t
 {
-	behavior_t   child;
+	behavior   child;
 	continuation resume{};
 	auto operator()(continuation _resume) noexcept -> continues
 	{
@@ -68,7 +68,7 @@ struct negate_t
 template<typename T>
 struct base_t
 {
-	behavior_t   x, y;
+	behavior   x, y;
 	continuation resume{};
 	auto operator()(continuation _resume) noexcept -> continues
 	{
@@ -127,16 +127,16 @@ struct differs_t : base_t<differs_t>
 };
 }
 
-auto negate(behavior_t&& x) -> behavior_t
+auto negate(behavior&& x) -> behavior
 { return negate_t{ std::move(x) }; }
 
-auto implies(behavior_t&& x, behavior_t&& y) -> behavior_t
+auto implies(behavior&& x, behavior&& y) -> behavior
 { return implies_t{ std::move(x), std::move(y) }; }
 
-auto equals(behavior_t&& x, behavior_t&& y) -> behavior_t
+auto equals(behavior&& x, behavior&& y) -> behavior
 { return equals_t{ std::move(x), std::move(y) }; }
 
-auto differs(behavior_t&& x, behavior_t&& y) -> behavior_t
+auto differs(behavior&& x, behavior&& y) -> behavior
 { return differs_t{ std::move(x), std::move(y) }; }
 
 } // cbt

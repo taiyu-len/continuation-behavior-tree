@@ -64,7 +64,7 @@ TEST_CASE("sequence")
 template<Status S>
 struct sequence_while
 {
-	std::unique_ptr<behavior_t[]> children;
+	std::unique_ptr<behavior[]> children;
 	std::uint8_t size;
 	std::uint8_t index = 0;
 	continuation resume = {};
@@ -96,15 +96,15 @@ using select_t = sequence_while<Failure>;
 
 }
 
-auto select_impl(behavior_t *data, std::uint8_t size) -> behavior_t
+auto select_impl(behavior *data, std::uint8_t size) -> behavior
 {
-	auto p = std::make_unique<behavior_t[]>(size);
+	auto p = std::make_unique<behavior[]>(size);
 	std::move(data, data+size, p.get());
 	return select_t{std::move(p), size};
 }
-auto sequence_impl(behavior_t *data, std::uint8_t size) -> behavior_t
+auto sequence_impl(behavior *data, std::uint8_t size) -> behavior
 {
-	auto p = std::make_unique<behavior_t[]>(size);
+	auto p = std::make_unique<behavior[]>(size);
 	std::move(data, data+size, p.get());
 	return sequence_t{std::move(p), size};
 }

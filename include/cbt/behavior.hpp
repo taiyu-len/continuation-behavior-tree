@@ -16,17 +16,17 @@ namespace cbt
  * - invocable as continues(continuation)
  *   for behaviors that continues::down as well as doing the above
  *****************************************************************************/
-class behavior_t
+class behavior
 {
 public:
 	template<typename T>
-	behavior_t(T&& x);
+	behavior(T&& x);
 
-	behavior_t() noexcept = default;
-	behavior_t(behavior_t &&) noexcept = default;
-	behavior_t(behavior_t const&) = delete;
-	behavior_t& operator=(behavior_t&& x) noexcept = default;
-	behavior_t& operator=(behavior_t const&) = delete;
+	behavior() noexcept = default;
+	behavior(behavior &&) noexcept = default;
+	behavior(behavior const&) = delete;
+	behavior& operator=(behavior&& x) noexcept = default;
+	behavior& operator=(behavior const&) = delete;
 
 	void run(continuation c) const noexcept;
 

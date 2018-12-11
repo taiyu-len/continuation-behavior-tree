@@ -4,13 +4,13 @@
 #include <array>
 namespace cbt
 {
-auto sequence_impl(behavior_t *, std::uint8_t) -> behavior_t;
+auto sequence_impl(behavior *, std::uint8_t) -> behavior;
 
 template<typename ...T>
-auto sequence(T&&... xs) -> behavior_t
+auto sequence(T&&... xs) -> behavior
 {
 	static_assert(sizeof...(T) < 256, "Too many nodes in sequence");
-	std::array<behavior_t, sizeof...(T)> a = { std::forward<T>(xs)... };
+	std::array<behavior, sizeof...(T)> a = { std::forward<T>(xs)... };
 	return sequence_impl(a.data(), static_cast<std::uint8_t>(a.size()));
 }
 } // cbt

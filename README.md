@@ -1,18 +1,18 @@
 An WIP implementation of behavior trees using continuations designed to work
 with asio
 
-the `behavior_t` is a smart pointer wrapping an object satisfying one of these
+the `behavior` is a smart pointer wrapping an object satisfying one of these
 requirements.
 - is invocable as `Status()`
   - used for leaf nodes that only `continues::up` the tree
     ```c++
-    behavior_t x = []{ do_stuff(); return Success; };
+    behavior x = []{ do_stuff(); return Success; };
     ```
 - is invocable as `void(continuation)`
   - used for leaf nodes that `continues::elsewhere`, that is it moves the
     continuation to be called later, for async processing
     ```c++
-    behavior_t x = [](continuation c)
+    behavior x = [](continuation c)
     {
         timer t(some_time);
         t.async_wait([](...){ do_stuff(); c(); });

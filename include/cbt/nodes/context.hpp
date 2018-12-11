@@ -10,9 +10,9 @@
 
 namespace cbt
 {
-class behavior_t;
+class behavior;
 template<typename T>
-using context_result = std::pair<behavior_t, T*>;
+using context_result = std::pair<behavior, T*>;
 
 template<typename T, typename F>
 auto context(F&&) -> context_result<T>;
