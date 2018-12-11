@@ -1,5 +1,6 @@
 -include targets.mk    # Userdefined Targets.
 -include buildflags.mk # Userdefined Build Flags
+-include extraflags.mk # Userdefined Build Flags, not affecting compilation
 all: $(target) compile_commands.json
 
 SOURCES != find src     -regextype awk -regex '.*\.(c|cc|cpp)'
