@@ -23,6 +23,36 @@ TEST_CASE("sequence")
 		REQUIRE(count[1] == 1);
 		REQUIRE(count[2] == 1);
 	}
+	SUBCASE("Fail in middle of sequence ")
+	{
+		spawn(sequence(
+			[&]{ ++count[0]; return status::success; },
+			[&]{ ++count[1]; return status::failure; },
+			[&]{ ++count[2]; return status::success; }
+		), cb);
+		REQUIRE(result == status::failure);
+		REQUIRE(count[0] == 1);
+		REQUIRE(count[1] == 1);
+		REQUIRE(count[2] == 0);
+	}
+	SUBCASE("abort early")
+	{
+		spawn(sequence(
+			[&]{ ++count[0]; return status::success; },
+			[&]{ ++count[1]; return status::aborted; },
+			[&]{ ++count[2]; return status::success; }
+		), cb);
+		REQUIRE(result == status::aborted);
+		REQUIRE(count[0] == 1);
+		REQUIRE(count[1] == 1);
+		REQUIRE(count[2] == 0);
+	}
+}
+TEST_CASE("select")
+{
+	int  count[3] = {0, 0, 0};
+	auto result = status::unknown;
+	auto cb = [&](status s) { result = s; };
 	SUBCASE("Select first success")
 	{
 		spawn(select(
@@ -47,14 +77,14 @@ TEST_CASE("sequence")
 		REQUIRE(count[1] == 1);
 		REQUIRE(count[2] == 1);
 	}
-	SUBCASE("Fail in middle of sequence ")
+	SUBCASE("abort early")
 	{
-		spawn(sequence(
-			[&]{ ++count[0]; return status::success; },
-			[&]{ ++count[1]; return status::failure; },
-			[&]{ ++count[2]; return status::success; }
+		spawn(select(
+			[&]{ ++count[0]; return status::failure; },
+			[&]{ ++count[1]; return status::aborted; },
+			[&]{ ++count[2]; return status::failure; }
 		), cb);
-		REQUIRE(result == status::failure);
+		REQUIRE(result == status::aborted);
 		REQUIRE(count[0] == 1);
 		REQUIRE(count[1] == 1);
 		REQUIRE(count[2] == 0);
@@ -82,19 +112,16 @@ struct sequence_while
 	}
 	auto step(status s) noexcept -> continues
 	{
-		if (index == size || s == !S)
+		if (s == S && index < size)
 		{
-			return continues::up(std::move(resume), s);
+			return CBT_DOWN(children[index], next);
 		}
-		return continues::down(
-			children[index],
-			continuation::mem_fn<&sequence_while::next>(*this));
+		return continues::up(std::move(resume), s);
 	}
 };
-using sequence_t = sequence_while<status::success>;
-using select_t = sequence_while<status::failure>;
-
 }
+using sequence_t = sequence_while<status::success>;
+using select_t   = sequence_while<status::failure>;
 
 auto select_impl(behavior *data, std::uint8_t size) -> behavior
 {

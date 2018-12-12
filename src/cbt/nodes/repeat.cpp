@@ -37,6 +37,13 @@ TEST_CASE("repeat")
 		REQUIRE(count == 3);
 		REQUIRE(result == status::failure);
 	}
+	SUBCASE("abort forever node")
+	{
+		auto n = [&]{ return ++count == 3 ? status::aborted : status::success; };
+		spawn(forever(n), cb);
+		REQUIRE(count == 3);
+		REQUIRE(result == status::aborted);
+	}
 	SUBCASE("Repeat 0 times")
 	{
 		spawn(repeat_n(True, 0), cb);
@@ -58,13 +65,11 @@ struct repeater_t
 	}
 	auto step(status s) noexcept -> continues
 	{
-		if (s == exit_on)
+		if (s == exit_on || s == status::aborted)
 		{
 			return continues::up(std::move(resume), s);
 		}
-		return continues::down(
-			child,
-			continuation::mem_fn<&repeater_t::step>(*this));
+		return CBT_DOWN(child, step);
 	}
 };
 
@@ -89,13 +94,11 @@ struct repeater_n_t
 	}
 	auto step(status s) noexcept -> continues
 	{
-		if (s == exit_on || count == limit)
+		if (s == exit_on || s == status::aborted || count == limit)
 		{
 			return continues::up(std::move(resume), s);
 		}
-		return continues::down(
-			child,
-			continuation::mem_fn<&repeater_n_t::next>(*this));
+		return CBT_DOWN(child, next);
 	}
 };
 
@@ -110,21 +113,32 @@ using forever_t  = repeater_t<status::success, status::unknown>;
 }
 
 auto repeat_n(behavior&& x, size_t limit) -> behavior
-{ return repeat_n_t{ std::move(x), limit }; }
+{
+	return repeat_n_t{ std::move(x), limit };
+}
 
 auto repeat(behavior&& x) -> behavior
-{ return repeat_t{ std::move(x) }; }
+{
+	return repeat_t{ std::move(x) };
+}
 
 auto until_n(behavior&& x, size_t limit) -> behavior
-{ return until_n_t{ std::move(x), limit }; }
+{
+	return until_n_t{ std::move(x), limit };
+}
 
 auto until(behavior&& x) -> behavior
-{ return until_t{ std::move(x) }; }
+{
+	return until_t{ std::move(x) };
+}
 
 auto for_n(behavior&& x, size_t limit) -> behavior
-{ return for_n_t{ std::move(x), limit }; }
+{
+	return for_n_t{ std::move(x), limit };
+}
 
 auto forever(behavior&& x) -> behavior
-{ return forever_t{ std::move(x) }; }
-
+{
+	return forever_t{ std::move(x) };
+}
 } // cbt

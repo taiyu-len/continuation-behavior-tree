@@ -1,6 +1,10 @@
 #ifndef CBT_BEHAVIOR_CONTINUATION_HPP
 #define CBT_BEHAVIOR_CONTINUATION_HPP
 #include "cbt/behavior/status.hpp"
+#include <type_traits>
+#define CBT_DOWN(C,FN) \
+continues::down((C), continuation::mem_fn<&std::decay_t<decltype(*this)>::FN>(*this))
+
 namespace cbt
 {
 struct continues;
