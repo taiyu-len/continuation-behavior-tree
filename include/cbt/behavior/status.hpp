@@ -2,25 +2,29 @@
 #define CBT_BEHAVIOR_STATUS_HPP
 /* Status codes are used to indicate the return state of a behavior node.
  *
- * status codes are modeled using 3-value weak logic.
- * with success being true, failure being false, abort being the third.
+ * status codes are modeled using 3-value weak logic, with an extra null state.
+ *
+ * Success, and Failure act as true and false, respectively.
+ * Aborted is contagious, and propogates across boolean expression
+ * Unknown is simply ignored in expressions.
+ *
  * +---+---+
  * |   | ! |
  * | S | F |
- * | A | A |
  * | F | S |
+ * | U | U |
+ * | A | A |
  * +---+---+
  *
- * +---+---+---+---+   +---+---+---+---+
- * | & | S | A | F |   | | | S | A | F |
- * +---+---+---+---+   +---+---+---+---+
- * | S | S | A | F |   | S | S | A | S |
- * | A | A | A | A |   | A | A | A | A |
- * | F | F | A | F |   | F | S | A | F |
- * +---+---+---+---+   +---+---+---+---+
+ * +---+---------+   +---+---------+
+ * | & | S F U A |   | | | S F U A |
+ * +---+---------+   +---+---------+
+ * | S | S F S A |   | S | S S S A |
+ * | F | F F F A |   | F | S F F A |
+ * | U | S F U A |   | U | S F U A |
+ * | A | A A A A |   | A | A A A A |
+ * +---+---------+   +---+---------+
  *
- * status codes have an unknown initial state as well, but use of it outside of
- * comparisons is undefined
  */
 #include <iosfwd>
 
