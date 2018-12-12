@@ -7,12 +7,12 @@ namespace cbt
 template<auto M, typename T>
 auto continuation::mem_fn(T& x) -> continuation
 {
-	constexpr bool a = std::is_invocable_r<continues, decltype(M), T*, Status>::value;
+	constexpr bool a = std::is_invocable_r<continues, decltype(M), T*, status>::value;
 	if constexpr (a)
 	{
 		auto c = continuation{};
 		c._that = std::addressof(x);
-		c._func = [](void* that, Status s)
+		c._func = [](void* that, status s)
 		{ return (static_cast<T*>(that)->*M)(s); };
 		return c;
 	}

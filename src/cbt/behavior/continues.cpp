@@ -4,7 +4,7 @@
 #include <cassert>
 namespace cbt
 {
-auto continues::up(continuation&& c, Status s) noexcept -> continues
+auto continues::up(continuation&& c, status s) noexcept -> continues
 {
 	continues x;
 	x._continue = std::move(c);

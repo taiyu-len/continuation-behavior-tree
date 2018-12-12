@@ -3,10 +3,10 @@ with asio
 
 the `behavior` is a smart pointer wrapping an object satisfying one of these
 requirements.
-- is invocable as `Status()`
+- is invocable as `status()`
   - used for leaf nodes that only `continues::up` the tree
     ```c++
-    behavior x = []{ do_stuff(); return Success; };
+    behavior x = []{ do_stuff(); return status::success; };
     ```
 - is invocable as `void(continuation)`
   - used for leaf nodes that `continues::elsewhere`, that is it moves the
@@ -25,7 +25,7 @@ requirements.
     node::operator(continuation r) -> continues
     {
         resume_parent = std::move(r);
-        resume_this = [this](Status s) -> continues
+        resume_this = [this](status s) -> continues
         {
             // random example
             switch (state()) {

@@ -9,7 +9,7 @@ namespace cbt
 {
 /*
  * A behavior can be constructed with any type that satisfies one of
- * - invocable as Status()
+ * - invocable as status()
  *   for behaviors that continues::up the tree (continuing with a status)
  * - invocable as void(continuation)
  *   for behaviors that continues::elsewhere, (continuing at a later point)

@@ -7,9 +7,10 @@
 namespace cbt
 {
 namespace {
-struct continue_test {
-	Status& result;
-	auto fn(Status s) -> continues {
+struct continue_test
+{
+	status& result;
+	auto fn(status s) -> continues {
 		result = s;
 		return continues::finished();
 	}
@@ -17,9 +18,10 @@ struct continue_test {
 }
 TEST_CASE("continuation")
 {
-	static auto result = Invalid;
+	static auto result = status::unknown;
 	auto ct = continue_test{result};
-	auto f  = [](Status s) -> continues {
+	auto f  = [](status s) -> continues
+	{
 		result = s;
 		return continues::finished();
 	};
@@ -31,8 +33,8 @@ TEST_CASE("continuation")
 	{
 		auto x = [&](continuation& c)
 		{
-			c(Success);
-			REQUIRE(result == Success);
+			c(status::success);
+			REQUIRE(result == status::success);
 			REQUIRE(c == nullptr);
 		};
 		x(cmf);
@@ -44,8 +46,8 @@ TEST_CASE("continuation")
 		{
 			auto c2 = std::move(c);
 			REQUIRE(c == nullptr);
-			c2(Failure);
-			REQUIRE(result == Failure);
+			c2(status::failure);
+			REQUIRE(result == status::failure);
 			REQUIRE(c2 == nullptr);
 		};
 		x(cmf);
@@ -53,13 +55,13 @@ TEST_CASE("continuation")
 	}
 	SUBCASE("continuation may be recreated from original")
 	{
-		cf(Success);
-		cmf(Success);
+		cf(status::success);
+		cmf(status::success);
 		REQUIRE(cf == nullptr);
 		REQUIRE(cmf == nullptr);
 		cf = f;
 		REQUIRE(cf != nullptr);
-		cf(Success);
+		cf(status::success);
 		REQUIRE(cf == nullptr);
 	}
 }
@@ -88,7 +90,7 @@ auto continuation::operator=(func1_t f) noexcept -> continuation&
 continuation::~continuation() noexcept
 { assert(_func == nullptr && _that == nullptr); }
 
-void continuation::operator()(Status s) noexcept
+void continuation::operator()(status s) noexcept
 {
 	continues::up(std::move(*this), s).run();
 }
@@ -120,7 +122,7 @@ void swap(continuation& x, continuation& y) noexcept
 	std::swap(x._that, y._that);
 }
 
-auto continuation::step(Status s) noexcept -> continues
+auto continuation::step(status s) noexcept -> continues
 {
 	if (_that == nullptr)
 	{

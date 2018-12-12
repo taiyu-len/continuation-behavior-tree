@@ -1,5 +1,11 @@
 #ifndef CBT_NODES_SEQUENCE_HPP
 #define CBT_NODES_SEQUENCE_HPP
+/* Models AND over return status,
+ * returns first failure, or abort, otherwise success.
+ *
+ * however, abort is not contagious in this case due to short circuiting.
+ * that is, we dont continue processing just to check if any abort.
+ */
 #include "cbt/behavior.hpp"
 #include <array>
 namespace cbt

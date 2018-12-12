@@ -14,7 +14,7 @@ auto repeat(behavior&&) -> behavior;
 auto until_n(behavior&&, size_t limit) -> behavior;
 auto until(behavior&&) -> behavior;
 
-// Repeat until limit, (TODO: stop on Abort Status)
+// Repeat until limit
 auto for_n(behavior&&, size_t limit) -> behavior;
 auto forever(behavior&&) -> behavior;
 

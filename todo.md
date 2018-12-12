@@ -17,3 +17,4 @@
 8. [ ] optimize sequence nodes with immutable number of children
 9. [ ] add support for allocators
 10. [ ] use better status type
+    - [ ] have thrown exceptions turn into aborted status codes.

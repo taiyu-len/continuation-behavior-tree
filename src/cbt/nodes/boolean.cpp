@@ -7,44 +7,44 @@ namespace cbt
 namespace {
 TEST_CASE("boolean-nodes")
 {
-	auto result = Invalid;
-	auto cb    = [&](Status s) { result = s; };
-	auto test = [&](behavior &&b, Status s) {
+	auto result = status::unknown;
+	auto cb    = [&](status s) { result = s; };
+	auto test = [&](behavior &&b, status s) {
 		spawn(std::move(b), cb);
 		REQUIRE(result == s);
 	};
-	auto True  = []{ return Success; };
-	auto False = []{ return Failure; };
+	auto True  = []{ return status::success; };
+	auto False = []{ return status::failure; };
 	SUBCASE("negate")
 	{
-		test(negate(True),  Failure);
-		test(negate(False), Success);
+		test(negate(True),  status::failure);
+		test(negate(False), status::success);
 	};
 	SUBCASE("double negate")
 	{
-		test(negate(negate(True)), Success);
-		test(negate(negate(False)), Failure);
+		test(negate(negate(True)), status::success);
+		test(negate(negate(False)), status::failure);
 	};
 	SUBCASE("implies")
 	{
-		test(implies(True, True), Success);
-		test(implies(True, False), Failure);
-		test(implies(False, True), Success);
-		test(implies(False, False), Success);
+		test(implies(True, True), status::success);
+		test(implies(True, False), status::failure);
+		test(implies(False, True), status::success);
+		test(implies(False, False), status::success);
 	};
 	SUBCASE("equals")
 	{
-		test(equals(True, True), Success);
-		test(equals(True, False), Failure);
-		test(equals(False, True), Failure);
-		test(equals(False, False), Success);
+		test(equals(True, True), status::success);
+		test(equals(True, False), status::failure);
+		test(equals(False, True), status::failure);
+		test(equals(False, False), status::success);
 	};
 	SUBCASE("differs")
 	{
-		test(differs(True, True), Failure);
-		test(differs(True, False), Success);
-		test(differs(False, True), Success);
-		test(differs(False, False), Failure);
+		test(differs(True, True), status::failure);
+		test(differs(True, False), status::success);
+		test(differs(False, True), status::success);
+		test(differs(False, False), status::failure);
 	};
 }
 
@@ -59,7 +59,7 @@ struct negate_t
 			child,
 			continuation::mem_fn<&negate_t::next>(*this));
 	}
-	auto next(Status s) noexcept -> continues
+	auto next(status s) noexcept -> continues
 	{
 		return continues::up(std::move(resume), !s);
 	}
@@ -82,47 +82,49 @@ struct base_t
 
 struct implies_t : base_t<implies_t>
 {
-	auto next(Status s) noexcept -> continues
+	auto next(status s) noexcept -> continues
 	{
-		if (s == Failure)
+		if (s == status::failure)
 		{
-			return continues::up(std::move(this->resume), Success);
+			return continues::up(std::move(this->resume), status::success);
 		}
 		return continues::down(y, std::move(this->resume));
 	}
 };
+
 struct equals_t : base_t<equals_t>
 {
-	Status first = Invalid;
-	auto next(Status s) noexcept -> continues
+	status first = status::unknown;
+	auto next(status s) noexcept -> continues
 	{
 		first = s;
 		return continues::down(
 			y,
 			continuation::mem_fn<&equals_t::last>(*this));
 	}
-	auto last(Status s) noexcept -> continues
+	auto last(status s) noexcept -> continues
 	{
 		return continues::up(
 			std::move(resume),
-			s == first ? Success : Failure);
+			s == first ? status::success : status::failure);
 	}
 };
+
 struct differs_t : base_t<differs_t>
 {
-	Status first = Invalid;
-	auto next(Status s) noexcept -> continues
+	status first = status::unknown;
+	auto next(status s) noexcept -> continues
 	{
 		first = s;
 		return continues::down(
 			y,
 			continuation::mem_fn<&differs_t::last>(*this));
 	}
-	auto last(Status s) noexcept -> continues
+	auto last(status s) noexcept -> continues
 	{
 		return continues::up(
 			std::move(resume),
-			s != first ? Success : Failure);
+			s != first ? status::success : status::failure);
 	}
 };
 }

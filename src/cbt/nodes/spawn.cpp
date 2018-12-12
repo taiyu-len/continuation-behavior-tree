@@ -4,41 +4,43 @@
 namespace cbt
 {
 void spawn(behavior&& x)
-{ spawn(std::move(x), +[](Status){}); }
+{ spawn(std::move(x), +[](status){}); }
 
 TEST_CASE("spawn")
 {
 	auto count = 0;
-	auto result = Status::Invalid;
-	auto cb = [&](behavior, Status s)
+	auto result = status::unknown;
+	auto cb = [&](behavior, status s)
 	{
 		++count;
 		result = s;
 	};
 	SUBCASE("spawn behavior tree")
 	{
-		spawn([]{ return Success; }, cb);
+		spawn([]{ return status::success; }, cb);
 		REQUIRE(count == 1);
-		REQUIRE(result == Success);
+		REQUIRE(result == status::success);
 	}
 	SUBCASE("spawn and continue")
 	{
 		continuation c;
 		spawn([&](continuation cc){ ++count; c = std::move(cc); }, cb);
 		REQUIRE(count == 1);
-		REQUIRE(result == Invalid);
+		REQUIRE(result == status::unknown);
 		REQUIRE(c != nullptr);
-		c(Success);
+		c(status::success);
 		REQUIRE(count == 2);
-		REQUIRE(result == Success);
+		REQUIRE(result == status::success);
 	}
 	SUBCASE("respawning")
 	{
-		struct respawn {
+		struct respawn
+		{
 			int    &count;
-			Status &result;
-			void operator ()(behavior b, Status s) {
-				if (++count == 5 || s == Failure)
+			status &result;
+			void operator ()(behavior b, status s)
+			{
+				if (++count == 5 || s == status::failure)
 					result = s;
 				else return spawn(std::move(b), *this);
 			}
@@ -47,21 +49,23 @@ TEST_CASE("spawn")
 		spawn(
 			[&](continuation cc){ c = std::move(cc); },
 			respawn{count, result});
-		c(Success);
+		c(status::success);
 		REQUIRE(c != nullptr);
 		REQUIRE(count == 1);
-		REQUIRE(result == Invalid);
-		SUBCASE("Fail early") {
-			c(Failure);
+		REQUIRE(result == status::unknown);
+		SUBCASE("Fail early")
+		{
+			c(status::failure);
 			REQUIRE(c == nullptr);
 			REQUIRE(count == 2);
-			REQUIRE(result == Failure);
+			REQUIRE(result == status::failure);
 		}
-		SUBCASE("Finish loop") {
-			while (c) c(Success);
+		SUBCASE("Finish loop")
+		{
+			while (c) c(status::success);
 			REQUIRE(c == nullptr);
 			REQUIRE(count == 5);
-			REQUIRE(result == Success);
+			REQUIRE(result == status::success);
 		}
 	}
 }

@@ -22,7 +22,7 @@ class behavior;
  */
 struct continues
 {
-	static auto up(continuation&&, Status s) noexcept -> continues;
+	static auto up(continuation&&, status s) noexcept -> continues;
 	static auto down(behavior const&, continuation&&) noexcept -> continues;
 	static auto elsewhere() noexcept -> continues;
 	static auto finished() noexcept -> continues;
@@ -32,8 +32,8 @@ struct continues
 private:
 	continues() = default;
 	behavior const* _behavior = nullptr;
-	continuation      _continue = {};
-	Status            _status   = Invalid;
+	continuation    _continue = {};
+	status          _status   = status::unknown;
 
 	enum class state_e { down, up, elsewhere };
 	auto state() const noexcept  -> state_e;

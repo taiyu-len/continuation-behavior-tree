@@ -32,26 +32,26 @@ TEST_CASE("context")
 		// we hit the first leaf, incrementing state, and setting the
 		// continuation. and continue with success
 		REQUIRE_UNARY(c && state == 1);
-		c(Success);
+		c(status::success);
 
 		// as above
 		REQUIRE_UNARY(c && state == 2);
-		c(Success);
+		c(status::success);
 
 		// as above
 		REQUIRE_UNARY(c && state == 3);
 		// this time the continuation will finish and free the behavior
 		// tree, leaving it invalid
-		c(Success);
+		c(status::success);
 		REQUIRE_FALSE(c);
 	}
 	SUBCASE("4-5")
 	{
 		int &state = spawn_counter(c, 4, 2);
 		REQUIRE(state == 5);
-		REQUIRE(c); c(Success);
+		REQUIRE(c); c(status::success);
 		REQUIRE(state == 6);
-		REQUIRE(c); c(Success);
+		REQUIRE(c); c(status::success);
 		REQUIRE(!c);
 	}
 }

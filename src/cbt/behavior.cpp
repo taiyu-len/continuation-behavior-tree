@@ -7,7 +7,9 @@ namespace cbt
 {
 
 void behavior::run(continuation c) const noexcept
-{ continues::down(*this, std::move(c)).run(); }
+{
+	continues::down(*this, std::move(c)).run();
+}
 
 auto behavior::step(continuation c) const noexcept -> continues
 {
@@ -19,15 +21,15 @@ auto behavior::step(continuation c) const noexcept -> continues
 TEST_CASE("behavior")
 {
 	auto count = 0;
-	auto result = Status::Invalid;
-	auto cb = [&](Status s) { result = s; };
+	auto result = status::unknown;
+	auto cb = [&](status s) { result = s; };
 	SUBCASE("leaf model")
 	{
-		auto bt = behavior([&]{ ++count; return Success; });
+		auto bt = behavior([&]{ ++count; return status::success; });
 		REQUIRE(count == 0);
-		REQUIRE(result == Invalid);
+		REQUIRE(result == status::unknown);
 		spawn(std::move(bt), cb);
-		REQUIRE(result == Success);
+		REQUIRE(result == status::success);
 		REQUIRE(count == 1);
 	}
 	SUBCASE("continuation model")
@@ -35,12 +37,12 @@ TEST_CASE("behavior")
 		auto bt = behavior([&](continuation c)
 		{
 			++count;
-			return continues::up(std::move(c), Success);
+			return continues::up(std::move(c), status::success);
 		});
 		REQUIRE(count == 0);
-		REQUIRE(result == Invalid);
+		REQUIRE(result == status::unknown);
 		spawn(std::move(bt), cb);
-		REQUIRE(result == Success);
+		REQUIRE(result == status::success);
 		REQUIRE(count == 1);
 	}
 	SUBCASE("external continuation")
@@ -52,22 +54,13 @@ TEST_CASE("behavior")
 			cc = std::move(c);
 		});
 		REQUIRE(count == 0);
-		REQUIRE(result == Invalid);
+		REQUIRE(result == status::unknown);
 		spawn(std::move(bt), cb);
-		REQUIRE(result == Invalid);
+		REQUIRE(result == status::unknown);
 		REQUIRE(count == 1);
-		SUBCASE("Success")
-		{
-			cc(Success);
-			REQUIRE(count == 1);
-			REQUIRE(result == Success);
-		}
-		SUBCASE("Failure")
-		{
-			cc(Failure);
-			REQUIRE(count == 1);
-			REQUIRE(result == Failure);
-		}
+		cc(status::success);
+		REQUIRE(count == 1);
+		REQUIRE(result == status::success);
 	}
 }
 } // cbt

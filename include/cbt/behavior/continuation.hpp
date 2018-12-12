@@ -12,8 +12,8 @@ struct continues;
 struct continuation
 {
 	using that_t = void*;
-	using func_t = continues(*)(that_t, Status);
-	using func1_t = continues(*)(Status);
+	using func_t = continues(*)(that_t, status);
+	using func1_t = continues(*)(status);
 
 	// construct from member functions, or regular functions.
 	template<auto M, typename T>
@@ -29,7 +29,7 @@ struct continuation
 	auto operator=(func1_t) noexcept -> continuation&;
 
 	// call operator for external continuation of user code.
-	void operator()(Status) noexcept;
+	void operator()(status) noexcept;
 
 	explicit operator bool() const noexcept;
 	friend bool operator==(std::nullptr_t, continuation const&) noexcept;
@@ -42,7 +42,7 @@ struct continuation
 
 private:
 	friend continues;
-	auto step(Status) noexcept -> continues;
+	auto step(status) noexcept -> continues;
 
 	/*
 	 * if _that == nullptr

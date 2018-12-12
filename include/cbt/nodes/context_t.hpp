@@ -9,7 +9,7 @@ namespace detail
 template<typename T, typename F>
 struct context_type
 {
-	auto operator()() noexcept -> Status;
+	auto operator()() noexcept -> status;
 	static auto make(F) -> context_result<T>;
 private:
 	context_type(F&& f): _reset(std::move(f)) {}
@@ -18,11 +18,11 @@ private:
 };
 
 template<typename T, typename F>
-auto context_type<T, F>::operator()() noexcept -> Status
+auto context_type<T, F>::operator()() noexcept -> status
 {
 	try { _reset(_value); }
-	catch (...) { return Failure; }
-	return Success;
+	catch (...) { return status::failure; }
+	return status::success;
 }
 
 template<typename T, typename F>

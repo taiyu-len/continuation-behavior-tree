@@ -1,5 +1,8 @@
 #ifndef CBT_NODES_SELECT_HPP
 #define CBT_NODES_SELECT_HPP
+/* Models OR over status codes.
+ * returning on first success, or first abort.
+ */
 #include "cbt/behavior.hpp"
 #include <array>
 namespace cbt

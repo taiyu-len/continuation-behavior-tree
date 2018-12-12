@@ -9,16 +9,16 @@ namespace {
 TEST_CASE("sequence")
 {
 	int  count[3] = {0, 0, 0};
-	auto result = Invalid;
-	auto cb = [&](Status s) { result = s; };
+	auto result = status::unknown;
+	auto cb = [&](status s) { result = s; };
 	SUBCASE("Succeed sequence all 3 times")
 	{
 		spawn(sequence(
-			[&]{ ++count[0]; return Success; },
-			[&]{ ++count[1]; return Success; },
-			[&]{ ++count[2]; return Success; }
+			[&]{ ++count[0]; return status::success; },
+			[&]{ ++count[1]; return status::success; },
+			[&]{ ++count[2]; return status::success; }
 		), cb);
-		REQUIRE(result == Success);
+		REQUIRE(result == status::success);
 		REQUIRE(count[0] == 1);
 		REQUIRE(count[1] == 1);
 		REQUIRE(count[2] == 1);
@@ -26,23 +26,23 @@ TEST_CASE("sequence")
 	SUBCASE("Select first success")
 	{
 		spawn(select(
-			[&]{ ++count[0]; return Failure; },
-			[&]{ ++count[1]; return Success; },
-			[&]{ ++count[2]; return Failure; }
+			[&]{ ++count[0]; return status::failure; },
+			[&]{ ++count[1]; return status::success; },
+			[&]{ ++count[2]; return status::failure; }
 		), cb);
 		REQUIRE(count[0] == 1);
 		REQUIRE(count[1] == 1);
 		REQUIRE(count[2] == 0);
-		REQUIRE(result == Success);
+		REQUIRE(result == status::success);
 	}
 	SUBCASE("Select all fail")
 	{
 		spawn(select(
-			[&]{ ++count[0]; return Failure; },
-			[&]{ ++count[1]; return Failure; },
-			[&]{ ++count[2]; return Failure; }
+			[&]{ ++count[0]; return status::failure; },
+			[&]{ ++count[1]; return status::failure; },
+			[&]{ ++count[2]; return status::failure; }
 		), cb);
-		REQUIRE(result == Failure);
+		REQUIRE(result == status::failure);
 		REQUIRE(count[0] == 1);
 		REQUIRE(count[1] == 1);
 		REQUIRE(count[2] == 1);
@@ -50,18 +50,18 @@ TEST_CASE("sequence")
 	SUBCASE("Fail in middle of sequence ")
 	{
 		spawn(sequence(
-			[&]{ ++count[0]; return Success; },
-			[&]{ ++count[1]; return Failure; },
-			[&]{ ++count[2]; return Success; }
+			[&]{ ++count[0]; return status::success; },
+			[&]{ ++count[1]; return status::failure; },
+			[&]{ ++count[2]; return status::success; }
 		), cb);
-		REQUIRE(result == Failure);
+		REQUIRE(result == status::failure);
 		REQUIRE(count[0] == 1);
 		REQUIRE(count[1] == 1);
 		REQUIRE(count[2] == 0);
 	}
 }
 
-template<Status S>
+template<status S>
 struct sequence_while
 {
 	std::unique_ptr<behavior[]> children;
@@ -75,12 +75,12 @@ struct sequence_while
 		index = 0;
 		return step(S);
 	}
-	auto next(Status s) noexcept -> continues
+	auto next(status s) noexcept -> continues
 	{
 		++index;
 		return step(s);
 	}
-	auto step(Status s) noexcept -> continues
+	auto step(status s) noexcept -> continues
 	{
 		if (index == size || s == !S)
 		{
@@ -91,8 +91,8 @@ struct sequence_while
 			continuation::mem_fn<&sequence_while::next>(*this));
 	}
 };
-using sequence_t = sequence_while<Success>;
-using select_t = sequence_while<Failure>;
+using sequence_t = sequence_while<status::success>;
+using select_t = sequence_while<status::failure>;
 
 }
 

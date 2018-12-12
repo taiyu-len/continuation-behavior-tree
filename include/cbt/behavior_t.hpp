@@ -48,15 +48,15 @@ behavior::behavior(T&& object)
 {
 	constexpr bool x = std::is_invocable_r<continues, T, continuation>::value;
 	constexpr bool y = !x && std::is_invocable_r<void, T, continuation>::value;
-	constexpr bool z = std::is_invocable_r<Status, T>::value;
+	constexpr bool z = std::is_invocable_r<status, T>::value;
 	constexpr bool valid = x+y+z == 1;
 	static_assert(valid, "behavior constructed with invalid type");
 	static_assert(valid || !x, "invocable as continues(continuation)");
 	static_assert(valid || !y, "invocable as void(continuation)");
-	static_assert(valid || !z, "invocable as Status()");
+	static_assert(valid || !z, "invocable as status()");
 	static_assert(valid || x, "not invocable as continues(continuation)");
 	static_assert(valid || y, "not invocable as void(continuation)");
-	static_assert(valid || z, "not invocable as Status()");
+	static_assert(valid || z, "not invocable as status()");
 	if constexpr (valid)
 	{
 		_object = std::make_unique<model_t<std::decay_t<T>, x, y, z>>(

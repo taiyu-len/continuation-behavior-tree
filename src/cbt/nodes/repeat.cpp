@@ -8,19 +8,19 @@ namespace {
 TEST_CASE("repeat")
 {
 	auto count = 0;
-	auto result = Invalid;
-	auto cb = [&](Status s) { result = s; };
-	auto True  = [&]{ ++count; return Success; };
-	auto False = [&]{ ++count; return Failure; };
-	auto Both  = [&, s=Success]() mutable { ++count; return s=!s; };
+	auto result = status::unknown;
+	auto cb = [&](status s) { result = s; };
+	auto True  = [&]{ ++count; return status::success; };
+	auto False = [&]{ ++count; return status::failure; };
+	auto Both  = [&, s=status::success]() mutable { ++count; return s=!s; };
 	SUBCASE("Repeat 5 times")
 	{
 		spawn(repeat_n(True, 5), cb);
 		REQUIRE(count == 5);
-		REQUIRE(result == Success);
+		REQUIRE(result == status::success);
 		spawn(until_n(False, 5), cb);
 		REQUIRE(count == 10);
-		REQUIRE(result == Failure);
+		REQUIRE(result == status::failure);
 		spawn(for_n(Both, 5), cb);
 		REQUIRE(count == 15);
 	}
@@ -28,24 +28,24 @@ TEST_CASE("repeat")
 	{
 		spawn(repeat_n(repeat_n(True, 5), 5), cb);
 		REQUIRE(count == 25);
-		REQUIRE(result == Success);
+		REQUIRE(result == status::success);
 	}
 	SUBCASE("Fail at third iteration")
 	{
-		auto n = [&]{ return ++count == 3 ? Failure : Success; };
+		auto n = [&]{ return ++count == 3 ? status::failure : status::success; };
 		spawn(repeat(n), cb);
 		REQUIRE(count == 3);
-		REQUIRE(result == Failure);
+		REQUIRE(result == status::failure);
 	}
 	SUBCASE("Repeat 0 times")
 	{
 		spawn(repeat_n(True, 0), cb);
 		REQUIRE(count == 0);
-		REQUIRE(result == Success);
+		REQUIRE(result == status::success);
 	}
 }
 
-template<Status initial, Status exit_on>
+template<status initial, status exit_on>
 struct repeater_t
 {
 	behavior     child;
@@ -56,7 +56,7 @@ struct repeater_t
 		resume = std::move(_resume);
 		return step(initial);
 	}
-	auto step(Status s) noexcept -> continues
+	auto step(status s) noexcept -> continues
 	{
 		if (s == exit_on)
 		{
@@ -68,7 +68,7 @@ struct repeater_t
 	}
 };
 
-template<Status initial, Status exit_on>
+template<status initial, status exit_on>
 struct repeater_n_t
 {
 	behavior child;
@@ -82,12 +82,12 @@ struct repeater_n_t
 		count = 0;
 		return step(initial);
 	}
-	auto next(Status s) noexcept -> continues
+	auto next(status s) noexcept -> continues
 	{
 		++this->count;
 		return step(s);
 	}
-	auto step(Status s) noexcept -> continues
+	auto step(status s) noexcept -> continues
 	{
 		if (s == exit_on || count == limit)
 		{
@@ -100,13 +100,13 @@ struct repeater_n_t
 };
 
 
-using repeat_n_t = repeater_n_t<Success, Failure>;
-using until_n_t  = repeater_n_t<Failure, Success>;
-using for_n_t    = repeater_n_t<Success, Invalid>;
+using repeat_n_t = repeater_n_t<status::success, status::failure>;
+using until_n_t  = repeater_n_t<status::failure, status::success>;
+using for_n_t    = repeater_n_t<status::success, status::unknown>;
 
-using repeat_t   = repeater_t<Success, Failure>;
-using until_t    = repeater_t<Failure, Success>;
-using forever_t  = repeater_t<Success, Invalid>;
+using repeat_t   = repeater_t<status::success, status::failure>;
+using until_t    = repeater_t<status::failure, status::success>;
+using forever_t  = repeater_t<status::success, status::unknown>;
 }
 
 auto repeat_n(behavior&& x, size_t limit) -> behavior
