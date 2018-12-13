@@ -20,48 +20,53 @@ struct behavior::model_base : concept_t
 	T _data;
 };
 
-template<typename T, bool x, bool y, bool z>
+template<typename T, int type>
 struct behavior::model_t : model_base<T>
 {
 	model_t(T data): model_base<T>{std::move(data)} {};
 	auto start(continuation c) noexcept -> continues override
 	{
-		if constexpr (x)
+		if constexpr (type == 1)
 		{
 			return this->_data(std::move(c));
 		}
-		else if constexpr (y)
+		else if constexpr (type == 2)
 		{
 			this->_data(std::move(c));
 			return continues::elsewhere();
 		}
-		else if constexpr (z)
+		else if constexpr (type == 3)
 		{
 			return continues::up(std::move(c), this->_data());
+		}
+		else if constexpr (type == 4)
+		{
+			auto result = this->_data()
+				? status::success : status::failure;
+			return continues::up(std::move(c), result);
 		}
 	}
 
 };
 
 template<typename T>
-behavior::behavior(T&& object)
+behavior::behavior(T&& x)
 {
-	constexpr bool x = std::is_invocable_r<continues, T, continuation>::value;
-	constexpr bool y = !x && std::is_invocable_r<void, T, continuation>::value;
-	constexpr bool z = std::is_invocable_r<status, T>::value;
-	constexpr bool valid = x+y+z == 1;
-	static_assert(valid, "behavior constructed with invalid type");
-	static_assert(valid || !x, "invocable as continues(continuation)");
-	static_assert(valid || !y, "invocable as void(continuation)");
-	static_assert(valid || !z, "invocable as status()");
-	static_assert(valid || x, "not invocable as continues(continuation)");
-	static_assert(valid || y, "not invocable as void(continuation)");
-	static_assert(valid || z, "not invocable as status()");
-	if constexpr (valid)
+	constexpr int kind =
+		std::is_invocable_r_v<continues, T, continuation> ? 1 :
+		std::is_invocable_r_v<void     , T, continuation> ? 2 :
+		std::is_invocable_r_v<status   , T              > ? 3 :
+		std::is_invocable_r_v<bool     , T              > ? 4 : -1;
+	if constexpr (kind > 0)
 	{
-		_object = std::make_unique<model_t<std::decay_t<T>, x, y, z>>(
-			std::forward<T>(object));
+		using M = model_t<std::decay_t<T>, kind>;
+		_object = std::make_unique<M>(std::forward<T>(x));
 	}
+	static_assert(kind>0, "behavior constructed with invalid type");
+	static_assert(kind>0, "not invocable as continues(continuation)");
+	static_assert(kind>0, "not invocable as void(continuation)");
+	static_assert(kind>0, "not invocable as status()");
+	static_assert(kind>0, "not invocable as bool()");
 }
 
 template<typename T>

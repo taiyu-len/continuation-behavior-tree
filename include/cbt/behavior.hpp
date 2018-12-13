@@ -9,12 +9,14 @@ namespace cbt
 {
 /*
  * A behavior can be constructed with any type that satisfies one of
- * - invocable as status()
- *   for behaviors that continues::up the tree (continuing with a status)
- * - invocable as void(continuation)
- *   for behaviors that continues::elsewhere, (continuing at a later point)
  * - invocable as continues(continuation)
  *   for behaviors that continues::down as well as doing the above
+ * - invocable as void(continuation)
+ *   for behaviors that continues::elsewhere, (continuing at a later point)
+ * - invocable as status()
+ *   for behaviors that continues::up the tree (continuing with a status)
+ * - invocable as bool()
+ *   for function that simply true (success) or false (failure)
  *****************************************************************************/
 class behavior
 {
@@ -42,7 +44,7 @@ private:
 	template<typename T>
 	struct model_base;
 
-	template<typename T, bool, bool, bool>
+	template<typename T, int>
 	struct model_t;
 	std::unique_ptr<struct concept_t> _object;
 };
