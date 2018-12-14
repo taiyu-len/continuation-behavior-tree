@@ -1,8 +1,8 @@
-#include "cbt/nodes/sequence.hpp"
 #include "cbt/nodes/select.hpp"
+#include "cbt/nodes/sequence.hpp"
 #include "cbt/nodes/spawn.hpp"
-#include <doctest/doctest.h>
 #include <algorithm>
+#include <doctest/doctest.h>
 namespace cbt
 {
 namespace {
@@ -94,8 +94,8 @@ TEST_CASE("select")
 template<status S>
 struct sequence_while
 {
-	std::unique_ptr<behavior[]> children;
-	std::uint8_t size;
+	std::unique_ptr<behavior[]> children = {};
+	std::uint8_t size = 0;
 	std::uint8_t index = 0;
 	continuation resume = {};
 
@@ -119,7 +119,7 @@ struct sequence_while
 		return continues::up(std::move(resume), s);
 	}
 };
-}
+} // namespace
 using sequence_t = sequence_while<status::success>;
 using select_t   = sequence_while<status::failure>;
 
@@ -135,4 +135,4 @@ auto sequence_impl(behavior *data, std::uint8_t size) -> behavior
 	std::move(data, data+size, p.get());
 	return sequence_t{std::move(p), size};
 }
-} // cbt
+} // namespace cbt

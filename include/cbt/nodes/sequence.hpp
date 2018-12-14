@@ -19,5 +19,5 @@ auto sequence(T&&... xs) -> behavior
 	std::array<behavior, sizeof...(T)> a = { std::forward<T>(xs)... };
 	return sequence_impl(a.data(), static_cast<std::uint8_t>(a.size()));
 }
-} // cbt
+} // namespace cbt
 #endif // CBT_NODES_SEQUENCE_HPP

@@ -1,8 +1,8 @@
 #include "cbt/behavior/continuation.hpp"
 #include "cbt/behavior/continues.hpp"
-#include <utility>
 #include <cassert>
 #include <doctest/doctest.h>
+#include <utility>
 
 namespace cbt
 {
@@ -15,7 +15,7 @@ struct continue_test
 		return continues::finished();
 	}
 };
-}
+} // namespace
 TEST_CASE("continuation")
 {
 	static auto result = status::unknown;
@@ -85,10 +85,15 @@ continuation::continuation(func1_t f) noexcept
 {}
 
 auto continuation::operator=(func1_t f) noexcept -> continuation&
-{ return *this = continuation{f}; }
+{
+	*this = continuation{f};
+	return *this;
+}
 
 continuation::~continuation() noexcept
-{ assert(_func == nullptr && _that == nullptr); }
+{
+	assert(_func == nullptr && _that == nullptr);
+}
 
 void continuation::operator()(status s) noexcept
 {
@@ -96,25 +101,39 @@ void continuation::operator()(status s) noexcept
 }
 
 continuation::operator bool() const noexcept
-{ return _func != nullptr; }
+{
+	return _func != nullptr;
+}
 
 bool operator==(std::nullptr_t, continuation const& x) noexcept
-{ return x._func == nullptr; }
+{
+	return x._func == nullptr;
+}
 
 bool operator==(continuation const& x, std::nullptr_t) noexcept
-{ return x._func == nullptr; }
+{
+	return x._func == nullptr;
+}
 
 bool operator==(continuation const& x, continuation const& y) noexcept
-{ return x._func == y._func && x._that == y._that; }
+{
+	return x._func == y._func && x._that == y._that;
+}
 
 bool operator!=(std::nullptr_t, continuation const& x) noexcept
-{ return !(nullptr == x); }
+{
+	return !(nullptr == x);
+}
 
 bool operator!=(continuation const& x, std::nullptr_t) noexcept
-{ return !(x == nullptr); }
+{
+	return !(x == nullptr);
+}
 
 bool operator!=(continuation const& x, continuation const& y) noexcept
-{ return !(x == y); }
+{
+	return !(x == y);
+}
 
 void swap(continuation& x, continuation& y) noexcept
 {
@@ -129,12 +148,8 @@ auto continuation::step(status s) noexcept -> continues
 		assert(_func1 != nullptr);
 		return std::exchange(_func1, nullptr)(s);
 	}
-	else
-	{
-		assert(_func != nullptr);
-		return std::exchange(_func, nullptr)(
-			std::exchange(_that, nullptr), s);
-	}
+	assert(_func != nullptr);
+	return std::exchange(_func, nullptr)(std::exchange(_that, nullptr), s);
 }
 
-} // cbt
+} // namespace cbt

@@ -1,7 +1,7 @@
 #ifndef CBT_BEHAVIOR_CONTINUATION_T_HPP
 #define CBT_BEHAVIOR_CONTINUATION_T_HPP
-#include <type_traits>
 #include <memory>
+#include <type_traits>
 namespace cbt
 {
 template<auto M, typename T>
@@ -21,6 +21,5 @@ auto continuation::mem_fn(T& x) -> continuation
 		static_assert(x, "continuation constructed from invalid member function");
 	}
 }
-
-} // cbt
+} // namespace cbt
 #endif // CBT_BEHAVIOR_CONTINUATION_T_HPP

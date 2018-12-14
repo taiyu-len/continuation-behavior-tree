@@ -44,5 +44,5 @@ auto operator!(status) noexcept -> status;
 auto operator&&(status, status) noexcept -> status;
 auto operator||(status, status) noexcept -> status;
 
-} // cbt
+} // namespace cbt
 #endif // CBT_BEHAVIOR_STATUS_HPP

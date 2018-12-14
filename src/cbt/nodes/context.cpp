@@ -1,7 +1,7 @@
 #include "cbt/behavior.hpp"
 #include "cbt/nodes/context.hpp"
-#include "cbt/nodes/sequence.hpp"
 #include "cbt/nodes/repeat.hpp"
+#include "cbt/nodes/sequence.hpp"
 #include "cbt/nodes/spawn.hpp"
 #include <doctest/doctest.h>
 namespace cbt
@@ -55,4 +55,4 @@ TEST_CASE("context")
 		REQUIRE(!c);
 	}
 }
-}
+} // namespace cbt

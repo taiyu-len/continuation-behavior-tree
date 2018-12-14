@@ -61,5 +61,5 @@ auto context() -> context_result<T>
 	auto reset = +[](T& p){ p = T{}; };
 	return detail::context_t<T, decltype(reset)>::make(reset);
 }
-} // cbt
+} // namespace cbt
 #endif // CBT_NODES_CONTEXT_T_HPP

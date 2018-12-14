@@ -63,8 +63,10 @@ profile-generate profile-use: % :
 	@$(MAKE) clean
 	@$(MAKE) all CXXFLAGS=-f$*
 
-clang-check clang-tidy: % : $(SOURCES)
-	@$* $^
+clang-check: $(SOURCES)
+	@clang-check -analyze $^
+clang-tidy: $(SOURCES)
+	@clang-tidy -checks='*,-fuchsia-*' $^
 
 clean-depends:
 	rm -f $(DEPENDS)

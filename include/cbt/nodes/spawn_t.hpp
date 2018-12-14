@@ -47,5 +47,5 @@ void spawn(behavior&& x, T&& y)
 		_spawn_t<std::decay_t<T>, a, b>::spawn(std::move(x), std::forward<T>(y));
 	}
 }
-} // cbt
+} // namespace cbt
 #endif // CBT_NODES_SPAWN_T_HPP

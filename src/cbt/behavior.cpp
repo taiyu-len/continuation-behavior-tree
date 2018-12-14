@@ -1,8 +1,8 @@
 #include "cbt/behavior.hpp"
 #include "cbt/nodes/spawn.hpp"
-#include <utility>
-#include <doctest/doctest.h>
 #include <cassert>
+#include <doctest/doctest.h>
+#include <utility>
 namespace cbt
 {
 
@@ -72,4 +72,4 @@ TEST_CASE("behavior")
 		REQUIRE(result == status::success);
 	}
 }
-} // cbt
+} // namespace cbt

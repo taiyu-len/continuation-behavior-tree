@@ -5,8 +5,7 @@
 
 namespace cbt
 {
-class behavior;
-
+struct behavior;
 /*
  * the return type of functions used to walk up and down the behavior tree.
  * used to avoid relying on unreliable tail-call optimizations.
@@ -39,9 +38,6 @@ private:
 	auto state() const noexcept  -> state_e;
 	auto go_up() noexcept  -> continues;
 	auto go_down() noexcept -> continues;
-};
-
-} // cbt
-
-
+}; // struct continues
+} // namespace cbt
 #endif // CBT_BEHAVIOR_RETURN_HPP

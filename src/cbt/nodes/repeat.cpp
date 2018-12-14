@@ -1,6 +1,6 @@
+#include "cbt/behavior.hpp"
 #include "cbt/nodes/repeat.hpp"
 #include "cbt/nodes/spawn.hpp"
-#include "cbt/behavior.hpp"
 #include <doctest/doctest.h>
 namespace cbt
 {
@@ -76,8 +76,8 @@ struct repeater_t
 template<status initial, status exit_on>
 struct repeater_n_t
 {
-	behavior child;
-	size_t     limit;
+	behavior   child;
+	size_t     limit = 0;
 	size_t     count = 0;
 	continuation resume{};
 
@@ -110,7 +110,7 @@ using for_n_t    = repeater_n_t<status::success, status::unknown>;
 using repeat_t   = repeater_t<status::success, status::failure>;
 using until_t    = repeater_t<status::failure, status::success>;
 using forever_t  = repeater_t<status::success, status::unknown>;
-}
+} // namespace
 
 auto repeat_n(behavior&& x, size_t limit) -> behavior
 {
@@ -141,4 +141,4 @@ auto forever(behavior&& x) -> behavior
 {
 	return forever_t{ std::move(x) };
 }
-} // cbt
+} // namespace cbt

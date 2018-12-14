@@ -75,5 +75,5 @@ auto behavior::get() const -> T&
 	auto *ptr = static_cast<model_base<std::decay_t<T>>*>(_object.get());
 	return ptr->_data;
 }
-} // cbt
+} // namespace cbt
 #endif // CBT_BEHAVIOR_T_HPP

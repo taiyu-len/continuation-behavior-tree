@@ -119,7 +119,7 @@ struct negate_t
 template<typename T>
 struct base_t
 {
-	behavior   x, y;
+	behavior x, y;
 	continuation resume{};
 	auto operator()(continuation _resume) noexcept -> continues
 	{
@@ -185,7 +185,7 @@ struct differs_t : base_t<differs_t>
 		return continues::up(std::move(resume), s);
 	}
 };
-}
+} // namespace
 
 auto negate(behavior&& x) -> behavior
 {
@@ -194,17 +194,17 @@ auto negate(behavior&& x) -> behavior
 
 auto implies(behavior&& x, behavior&& y) -> behavior
 {
-	return implies_t{ std::move(x), std::move(y) };
+	return implies_t{{ std::move(x), std::move(y) }};
 }
 
 auto equals(behavior&& x, behavior&& y) -> behavior
 {
-	return equals_t{ std::move(x), std::move(y) };
+	return equals_t{{ std::move(x), std::move(y) }};
 }
 
 auto differs(behavior&& x, behavior&& y) -> behavior
 {
-	return differs_t{ std::move(x), std::move(y) };
+	return differs_t{{ std::move(x), std::move(y) }};
 }
 
-} // cbt
+} // namespace cbt

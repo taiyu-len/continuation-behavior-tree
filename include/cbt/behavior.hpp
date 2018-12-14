@@ -1,9 +1,9 @@
 #ifndef CBT_BEHAVIOR_HPP
 #define CBT_BEHAVIOR_HPP
-#include <memory>
-#include "cbt/behavior/status.hpp"
 #include "cbt/behavior/continuation.hpp"
 #include "cbt/behavior/continues.hpp"
+#include "cbt/behavior/status.hpp"
+#include <memory>
 
 namespace cbt
 {
@@ -18,9 +18,8 @@ namespace cbt
  * - invocable as bool()
  *   for function that simply true (success) or false (failure)
  *****************************************************************************/
-class behavior
+struct behavior
 {
-public:
 	template<typename T>
 	behavior(T&& x);
 
@@ -47,7 +46,7 @@ private:
 	template<typename T, int>
 	struct model_t;
 	std::unique_ptr<struct concept_t> _object;
-};
-} // cbt
+}; // struct behavior
+} // namespace cbt
 #include "cbt/behavior_t.hpp"
 #endif // CBT_BEHAVIOR_HPP

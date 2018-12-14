@@ -1,6 +1,6 @@
-#include "cbt/behavior/continues.hpp"
-#include "cbt/behavior/continuation.hpp"
 #include "cbt/behavior.hpp"
+#include "cbt/behavior/continuation.hpp"
+#include "cbt/behavior/continues.hpp"
 #include <cassert>
 namespace cbt
 {
@@ -21,9 +21,14 @@ auto continues::down(behavior const& b, continuation&& c) noexcept -> continues
 }
 
 auto continues::elsewhere() noexcept -> continues
-{ return continues{}; }
+{
+	return continues{};
+}
+
 auto continues::finished() noexcept -> continues
-{ return continues{}; }
+{
+	return continues{};
+}
 
 void continues::run() noexcept
 {
@@ -38,12 +43,16 @@ auto continues::state() const noexcept -> state_e
 {
 	if (_behavior) return state_e::down;
 	if (_continue) return state_e::up;
-	else           return state_e::elsewhere;
+	return state_e::elsewhere;
 }
 
 auto continues::go_up() noexcept -> continues
-{ return _continue.step(_status); }
+{
+	return _continue.step(_status);
+}
 
 auto continues::go_down() noexcept -> continues
-{ return _behavior->step(std::move(_continue)); }
-} // cbt
+{
+	return _behavior->step(std::move(_continue));
+}
+} // namespace cbt

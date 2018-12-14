@@ -60,8 +60,7 @@ private:
 		func1_t _func1 = nullptr;
 	};
 	that_t _that = nullptr;
-};
-
-} // cbt
+}; // struct continuation
+} // namespace cbt
 #include "cbt/behavior/continuation_t.hpp"
 #endif // CBT_BEHAVIOR_CONTINUATION_HPP

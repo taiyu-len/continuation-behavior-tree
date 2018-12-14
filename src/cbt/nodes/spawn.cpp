@@ -41,8 +41,13 @@ TEST_CASE("spawn")
 			void operator ()(behavior b, status s)
 			{
 				if (++count == 5 || s == status::failure)
+				{
 					result = s;
-				else return spawn(std::move(b), *this);
+				}
+				else
+				{
+					spawn(std::move(b), *this);
+				}
 			}
 		};
 		continuation c;
@@ -62,11 +67,14 @@ TEST_CASE("spawn")
 		}
 		SUBCASE("Finish loop")
 		{
-			while (c) c(status::success);
+			while (c)
+			{
+				c(status::success);
+			}
 			REQUIRE(c == nullptr);
 			REQUIRE(count == 5);
 			REQUIRE(result == status::success);
 		}
 	}
 }
-} // cbt
+} // namespace cbt

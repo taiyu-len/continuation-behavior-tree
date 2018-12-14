@@ -10,7 +10,7 @@
 
 namespace cbt
 {
-class behavior;
+struct behavior;
 template<typename T>
 using context_result = std::pair<behavior, T*>;
 
@@ -19,6 +19,6 @@ auto context(F&&) -> context_result<T>;
 
 template<typename T>
 auto context() -> context_result<T>;
-} // cbt
+} // namespace cbt
 #include "cbt/nodes/context_t.hpp"
 #endif // CBT_NODES_CONTEXT_HPP

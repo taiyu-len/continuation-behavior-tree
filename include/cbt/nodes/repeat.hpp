@@ -4,7 +4,7 @@
 #include <cstddef>
 namespace cbt
 {
-class behavior;
+struct behavior;
 
 // Repeat until failure or limit
 auto repeat_n(behavior&&, size_t limit) -> behavior;
@@ -18,5 +18,5 @@ auto until(behavior&&) -> behavior;
 auto for_n(behavior&&, size_t limit) -> behavior;
 auto forever(behavior&&) -> behavior;
 
-} // cbt
+} // namespace cbt
 #endif // CBT_NODES_REPEAT_HPP

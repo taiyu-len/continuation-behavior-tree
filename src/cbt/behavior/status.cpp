@@ -1,6 +1,6 @@
 #include "cbt/behavior/status.hpp"
-#include <iostream>
 #include <doctest/doctest.h>
+#include <iostream>
 namespace cbt
 {
 TEST_CASE("status")
@@ -73,13 +73,9 @@ auto common_case(status& x, status y) noexcept -> bool
 		x = y;
 		return true;
 	}
-	if (y == status::unknown)
-	{
-		return true;
-	}
-	return false;
+	return y == status::unknown;
 }
-}
+} // namespace
 
 auto operator&&(status x, status y) noexcept -> status
 {
@@ -98,4 +94,4 @@ auto operator||(status x, status y) noexcept -> status
 	}
 	return (x == status::success) ? x : y;
 }
-} // cbt
+} // namespace cbt
